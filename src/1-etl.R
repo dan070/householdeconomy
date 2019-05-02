@@ -46,10 +46,49 @@ dbExecute(mydb, "create table if not exists unlabeled (
           predicted_label TEXT
 )")
 
+dbExecute(mydb, "create table if not exists unlabeled_stage (
+             transactiontext TEXT, 
+          transactiondate TEXT NOT NULL, 
+          bookingdate TEXT NOT NULL, 
+          amount REAL NOT NULL, 
+          balance REAL NOT NULL,
+          manual_label TEXT,
+          predicted_label TEXT
+)")
+
+dbExecute(mydb, "create table if not exists unlabeled_update (
+             transactiontext TEXT, 
+          transactiondate TEXT NOT NULL, 
+          bookingdate TEXT NOT NULL, 
+          amount REAL NOT NULL, 
+          balance REAL NOT NULL,
+          manual_label TEXT,
+          predicted_label TEXT
+)")
+
+dbExecute(mydb, "create table if not exists labeled (
+             transactiontext TEXT, 
+          transactiondate TEXT NOT NULL, 
+          bookingdate TEXT NOT NULL, 
+          amount REAL NOT NULL, 
+          balance REAL NOT NULL,
+          label TEXT
+)")
+
+dbExecute(mydb, "create table if not exists labeled_stage (
+             transactiontext TEXT, 
+          transactiondate TEXT NOT NULL, 
+          bookingdate TEXT NOT NULL, 
+          amount REAL NOT NULL, 
+          balance REAL NOT NULL,
+          label TEXT
+)")
+
 
 
 # Process one by one.
 # For now, we only to 1 file.
+fi <- flist[1]
 for(fi in flist[1]){
 
   # Read file
@@ -68,16 +107,16 @@ for(fi in flist[1]){
     stringr::str_replace_all(pattern = " ", replacement = "")   %>% 
     as.numeric() 
   
-  # Make date of the dates
-  dat1$transactiondate %>% lubridate::as_date() -> dat1$transactiondate
-  dat1$bookingdate %>% lubridate::as_date() -> dat1$bookingdate
+  # Make date, and then STRINGS of the dates
+  dat1$transactiondate %>% lubridate::as_date() %>% as.character() -> dat1$transactiondate
+  dat1$bookingdate %>% lubridate::as_date() %>% as.character() -> dat1$bookingdate
   
 
 
   # TEST: We should have only complete cases, else we have error.
   assertthat::assert_that(all(complete.cases(dat1)))
   # TEST: We should have certain classes
-  stopifnot(all(sapply(dat1, class) == c("character", "Date", "Date", "numeric", "numeric")))
+  stopifnot(all(sapply(dat1, class) == c("character", "character", "character", "numeric", "numeric")))
   # TEST: We should have at least 10 transactions
   assertthat::assert_that(nrow(dat1) > 10)
   
