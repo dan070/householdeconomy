@@ -73,6 +73,14 @@ SmallTableObject <-
 
       },
 
+      #~~~~~~~~~~~~~~~~~~~~~~~~
+      # ~ Print ~
+      #~~~~~~~~~~~~~~~~~~~~~~~~
+      print = function(...) {
+        print("SmallTableObject")
+        invisible(self)
+      },
+      
       
       #~~~~~~~~~~~~~~~~~~~~~~~~
       # ~ Initialize ~
@@ -201,10 +209,13 @@ SmallTableObject <-
       
       # Func : hash data frame to compare 2 data frames for similarity.
       hash_data_frame = function(df_to_hash = NA){
-        # Check for data frame with data in.
-        checkmate::assertDataFrame(x = df_to_hash, min.cols = 1, min.rows = 1)
+        # Define local sort function that handles classes not implementing sort.
+        sorts <- function(x){
+          if(class(x) == "blob") x = as.integer(unlist(df_to_hash[, 4]))
+          return(sort(x))
+        }
         # Sort each column independently.
-        df1 <- lapply(X = df_to_hash, FUN = sort)
+        df1 <- lapply(X = df_to_hash, FUN = sorts)
         # Digest MD5 on each column.
         df2 <- lapply(X = df1, FUN = function(x) digest::digest(object = x, algo = "md5"))
         # Digest the sorted md5 hashes to 1 final md5 value.
