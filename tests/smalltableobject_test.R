@@ -90,7 +90,6 @@ for(db in tempdbpath){
   
   # Create connection object to sqlite.
   con_temp <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = db)
-  mytemp <- DBI::dbGetQuery(con_temp, "select * from test1")
   #DBI::dbListTables(con_temp)
 
   # Create a table with all pertinent datatypes
@@ -166,20 +165,30 @@ for(db in tempdbpath){
   
   # /////////////////////////////////////////////////////////////////////
   # Check updates on each column.
-  # /////////////////////////////////////////////////////////////////////
+  #
   # Create a sto on table.
   # Change 1 value in each column (add 1, or "a"). Write back each change.
   # Change 1 value to NA in each column, and write back for each change.
   # Set each column to NA, one at a time, and write back.
-  #
-  sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
-  sto2 <- NULL
-  # # TODO: row 203 , errors:  Error in xi == xj : comparison of these types is not implemented 
-  sort(df_to_hash[, 4])
-  class(df_to_hash[, 4])
-  sort()
-  con_temp
+  # /////////////////////////////////////////////////////////////////////
   
+  # Create sto object.
+  sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
+
+  # Get original table.  
+  con_temp <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = db)
+  mytemp <- DBI::dbGetQuery(con_temp, "select * from test1")
+  DBI::dbDisconnect(con_temp)
+
+  # Change 1 value in each column and write back.  
+  sto2[1, 1]
+  sto2 <- NULL
+
+  ## TODO: MAJOR REWRITE
+  # Overload the operators [], as if this was a genuine data frame.
+  # Send in a value then modify the underlying data base.
+  # Read, then just return the DF.
+  # 
   
   
   # Clear the local copy of table and randomise a new, 100 rows for each column.
