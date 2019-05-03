@@ -81,6 +81,7 @@ tests_assert$getMessages()
 # Try database variations (if any)...
 # /////////////////////////////////////////////////////////////////////
 tempdbpath <- list(tempfile())
+db <- tempdbpath[[1]]
 for(db in tempdbpath){
   
   # /////////////////////////////////////////////////////////////////////
@@ -89,7 +90,8 @@ for(db in tempdbpath){
   
   # Create connection object to sqlite.
   con_temp <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = db)
-  
+  mytemp <- DBI::dbGetQuery(con_temp, "select * from test1")
+  #DBI::dbListTables(con_temp)
 
   # Create a table with all pertinent datatypes
   #   -Date/time specific class is not an option for sqlite.
@@ -159,7 +161,9 @@ for(db in tempdbpath){
   DBI::dbExecute(con_temp, paste("INSERT INTO test1
                                  VALUES", inserts))
   
+  # Disconnect database.
   DBI::dbDisconnect(con_temp)
+  
   # /////////////////////////////////////////////////////////////////////
   # Check updates on each column.
   # /////////////////////////////////////////////////////////////////////
@@ -169,11 +173,11 @@ for(db in tempdbpath){
   # Set each column to NA, one at a time, and write back.
   #
   sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
-  
-  tmp <- RSQLite::dbConnect(drv = RSQLite::SQLite(), dbname = db)
-  TODO: row 203 , errors:  Error in xi == xj : comparison of these types is not implemented 
-  
-  
+  sto2 <- NULL
+  # # TODO: row 203 , errors:  Error in xi == xj : comparison of these types is not implemented 
+  sort(df_to_hash[, 4])
+  class(df_to_hash[, 4])
+  sort()
   con_temp
   
   
