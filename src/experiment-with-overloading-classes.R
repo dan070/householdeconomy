@@ -1,24 +1,13 @@
 # Experiment with overloading the class based [ operator
+source("./src/objects.R")
 
+sto2 <- NULL
 sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
+class(sto2)
 
-
-
-'[.SmallTableObject' <- function(o, x, y){
-  print("start"); 
-  print("o:"); 
-  print(o); 
-  print("x"); 
-  print(x); 
-  print("y:"); 
-  print(y); 
-  print("fin")
-  return("Return value")
-  } 
 rm(`[.SmallTableObject`)
-
-'[<-.SmallTableObject' <- function(o, x, y, value){
-  print("start"); 
+'[.SmallTableObject' <- function(o = NULL, x = NULL, y = NULL){
+  print("start1"); 
   print("o:"); 
   print(o); 
   print("x"); 
@@ -26,31 +15,39 @@ rm(`[.SmallTableObject`)
   print("y:"); 
   print(y); 
   print("fin")
-  return(o)
-} 
+  tmp <- o$subset(x = x, y = y, value = NULL)
+  return(tmp)
+  } 
+sto2[, ]
+sto2[1, 1]
+sto2[, 1]
+sto2[1, ]
+
+
 rm(`[<-.SmallTableObject`)
-
-
-
-'.subset<-.SmallTableObject' <- function(o, x, y, value){
-  print("start"); 
-  print("o:"); 
-  print(o); 
-  print("x"); 
-  print(x); 
-  print("y:"); 
-  print(y); 
-  print("fin")
-  return("Return value")
+'[<-.SmallTableObject' <- function(o = NULL, x = NULL, y = NULL, value = NULL){
+  tmp <- o$subset(x = x, y = y, value = value)
+  return(tmp)
 } 
+# Case 1
+tmp <- sto2[1, ]
+sto2[, ] <- tmp
+sto2[, 1]
 
-
-rm(`.subset<-.SmallTableObject`)
-
-sto2[1]
-
+# Case 2
 sto2[1, 1] <- 100
+
+
+
 sto2[, 1] <- 100
+sto2[1, ] <- 100
 
 class(sto2)
-class
+
+
+# test what happens when abusing the notation
+tmp <- cars
+tmp[1, 1] <- NA
+tmp[, 1] <- "2a"
+lapply(tmp, class)
+
