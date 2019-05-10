@@ -5,6 +5,7 @@
 
 
 
+
 # Objects used to simplify handling of data to and fro the database.
 
 
@@ -17,125 +18,94 @@ SmallTableObject <-
     #~~~~~~~~~~~~~~~~~~~~~~~~
     public = list(
       #~~~~~~~~~~~~~~~~~~~~~~~~
-      # ~ Subset ~
+      # ~ Function: Subset ~
+      # A rewrite of R:s special function [ and [<-
+      # Used in tandem with S3-overloaded operator.
+      # Handles both assignment and selection/subsetting operations.
       #~~~~~~~~~~~~~~~~~~~~~~~~
       subset = function(x = NULL,
                         y = NULL,
                         value = NULL) {
         print("subset function called.")
-        print(x)
-        print(y)
-        print(value)
-        #if value is null, we return the frame (possibly subsetted)
-        if (is.null(x) && is.null(y) && is.null(value)) {
-          print("1st if statement.")
-          return(private$table_df)
-        }
-        if (!is.null(x) && !is.null(y) && is.null(value)) {
-          print("2nd if statement.")
-          return(private$table_df[x, y])
-        }
-        if (is.null(x) && !is.null(y) && is.null(value)) {
-          print("3nd if statement.")
-          return(private$table_df[, y])
-        }
-        if (!is.null(x) && is.null(y) && is.null(value)) {
-          print("4th if statement.")
-          return(private$table_df[x,])
+        print(paste("x = " , x))
+        print(paste("y = " , y))
+        print(paste("is null value", is.null(value)))
+        
+        #if parameter "value" = null, return frame (possibly subsetted)
+        if (is.null(value)) {
+          if (is.null(x) && is.null(y)) {
+            print("1st if statement.")
+            return(private$table_df)
+          }
+          if (!is.null(x) && !is.null(y)) {
+            print("2nd if statement.")
+            return(private$table_df[x, y])
+          }
+          if (is.null(x) && !is.null(y)) {
+            print("3nd if statement.")
+            return(private$table_df[, y])
+          }
+          if (!is.null(x) && is.null(y)) {
+            print("4th if statement.")
+            return(private$table_df[x, ])
+          }
+          
         }
         
-        # If value is not null,  we need to check the value.
-        if (is.null(x) && is.null(y) && !is.null(value)) {
-          # If x and y null, then [,] <- whole.data.frame
-          print("5th if statement.")
-          assertcollection <- checkmate::makeAssertCollection()
-          # Check : value is a data frame.
-          # Check : right number of columns.
-          # Check : each column class.
-          checkmate::assert_data_frame(
-            x = value,
-            types = private$table_types,
-            ncols = length(private$table_df),
-            add = assertcollection
-          )
-          # Check : column names.
-          checkmate::assert_names(
-            x = value,
-            identical.to = names(private$table_df),
-            add = assertcollection
-          )
+        # If parameter "value" is not null, requires updating the underlying data.
+        if (!is.null(value)) {
+          # Make copy and assign to that firstly to flush out errors implicitly using Rs own error checking.
+          tmp_table_df <-
+            private$table_df # Make a copy of the table df.
           
-          # If we pass then just put data in.
-          # Return self.
-          private$table_df <- value
-          return(self)
-        }
-        if (!is.null(x) && !is.null(y) && !is.null(value)) {
-          print("6th if statement.")
-          # We are not allowed to change the configuration of the data frame.
-          # The classes have to be in line with what is already there.
-          # And they have to be valid identifiers for that data frame.
-          #
-          # Make a copy of the table df. 
-          # Assign to it.
-          # Check verification of copy.
-          # Swap the copy into the private field.
-          tmp_table_df <- private$table_df
+          # Row and column not specificed.
+          if (is.null(x) && is.null(y)) {
+            print("5th if statement.")
+            tmp_table_df[x, y] <-
+              value # Assign. x and y null so [,] <- whole.data.frame
+          }
           
-          tmp_table_df[x, y] <- value
+          # Row subset, column subset.
+          if (!is.null(x) && !is.null(y)) {
+            print("6th if statement.")
+            tmp_table_df[x, y] <- value # Assign.
+          }
           
-          private$table_types
+          # Row empty, column subset.
+          if (is.null(x) && !is.null(y)) {
+            print("7th if statement.")
+            tmp_table_df[, y] <- value # Assign.
+          }
           
-          TODO : check the table types on this assignment.
-          if table types are unchanged, then we are cool.
-          Any other weird assignment will be error by default in R.
+          # Row subset, column empty.
+          if (!is.null(x) && is.null(y)) {
+            print("8th if statement.")
+            tmp_table_df[x,] <- value # Assign.
+          }
           
-          lapply(tmp_table_df, class)
-          
-          tmp_class_value = apply(X = value,
-                                  MARGIN = 2,
+          # Assert: classes on temp data frame have not changed.
+          tmp_class_value = lapply(X = tmp_table_df,
                                   FUN = class)
-          tmp_class_df = apply(X = private$table_df[, y],
-                               MARGIN = 2,
+          tmp_class_df = lapply(X = private$table_df[, y],
                                FUN = class)
-          checkmate::assert_set_equal(
-            x = tmp_class_df,
-            y = tmp_class_value,
-            ordered = T,
-            add = assertcollection
-          )
-          private$table_df[x, y] <- value
+          checkmate::assert_set_equal(x = tmp_class_df,
+                                      y = tmp_class_value,
+                                      ordered = T)
           
+          
+          # Update the private data table.
+          private$table_df[x, y] <- tmp_table_df
+          
+          # Save to data base.
+          private$save_table_to_database()
+          
+          # Return
           return(self)
         }
-        if (is.null(x) && !is.null(y) && !is.null(value)) {
-          print("7th if statement.")
-          return(private$table_df[, y])
-        }
-        if (!is.null(x) && is.null(y) && !is.null(value)) {
-          print("8th if statement.")
-          return(private$table_df[x,])
-        }
         
         
         
-        # LEGACY CODE DOWN HERE TO USE LATER
-        # # compare the form of input df to the object private df.
-        # assertcollection <- checkmate::makeAssertCollection()
-        # # Check for number of cols and types.
-        # checkmate::assertDataFrame(
-        #   x = df,
-        #   types = private$table_types,
-        #   ncols = length(private$table_df),
-        #   add = assertcollection
-        # )
-        # # Check names of columns.
-        # checkmate::assertSetEqual(names(df),
-        #                           names(private$table_df),
-        #                           ordered = T,
-        #                           add = assertcollection)
         #
-        # # Check table integrity (ensure no data race on local table versus target table).
         # tryCatch(
         #   expr = {
         #     # Get target table (again)
@@ -192,7 +162,7 @@ SmallTableObject <-
                             tablename = NULL) {
         assertcollection <- checkmate::makeAssertCollection()
         checkmate::assertChoice(x = dbtype,
-                                choices = c("sqlite"),
+                                choices = private$allowed_dbtypes,
                                 add = assertcollection)
         
         # SQLITE specific
@@ -263,8 +233,7 @@ SmallTableObject <-
           
         }
         
-        
-        # Check that the table is well formed.
+        # Check: data types are simple.
         private$table_types <-
           unlist(lapply(private$table_df, class))
         check_distinct_class_per_column <-
@@ -273,7 +242,7 @@ SmallTableObject <-
           assertcollection$push("Some columns have more than 1 data type listed.")
         }
         
-        # Calculate hash for data frame
+        # Save md5-hash for data frame.
         private$table_hash <-
           private$hash_data_frame(df_to_hash = private$table_df)
         
@@ -307,6 +276,11 @@ SmallTableObject <-
       table_df = NA,
       table_types = NA,
       table_hash = NA,
+      allowed_dbtypes = c("sqlite"),
+      
+      #~~~~~~~~~~~~~~~~~~~~~~~~
+      # ~ Private func: hash_data_frame
+      #~~~~~~~~~~~~~~~~~~~~~~~~
       
       # Func : hash data frame to compare 2 data frames for similarity.
       hash_data_frame = function(df_to_hash = NA) {
@@ -331,6 +305,44 @@ SmallTableObject <-
         # Return 1 value.
         return(df3)
       }#func:hash_data_frame ends here
-      
+      ,
+      #~~~~~~~~~~~~~~~~~~~~~~~~
+      # ~ Private func: save_table
+      #~~~~~~~~~~~~~~~~~~~~~~~~
+      # Func : save the local data frame to our data base.
+      save_table_to_database = function() {
+        if (private$dbtype == "sqlite") {
+          # ~~ Check data base connection working ~~
+          if (!DBI::dbIsValid(private$connection)) {
+            private$connection <-
+              RSQLite::dbConnect(drv = RSQLite::SQLite(), dbname = private$host)
+          }
+          checkmate::assert_true(DBI::dbIsValid(private$connection))
+          
+          # ~~ Check underlying table integrity ~~
+          # (ensure no data race on local table versus target table).
+          # ie... Download table. Hash it. Compare hashes. Else error.
+          tmp_data_table <-
+            DBI::dbReadTable(conn = private$connection, name = private$tablename)
+          tmp_hash <-
+            private$hash_data_frame(df_to_hash = tmp_data_table)
+          checkmate::assert_true(private$table_hash, tmp_hash)
+          
+          # ~~ Upsert the table ~~
+          # Truncate the data base table.
+          DBI::dbGetQuery(
+            conn = private$connection,
+            statement = paste("DELETE FROM ", private$tablename)
+          )
+          # Upsert whole private table to data base table.
+          DBI::dbWriteTable(
+            conn = private$connection,
+            name = private$tablename,
+            value = private$table_df
+          )
+          # Update private hash (of new table).
+          private$table_hash <- private$hash_data_frame(private$table_df)
+        } # if private$dbtype == "sqlite" ends here.
+      }# func:save_table_to_database ends here.
     )# Private fields ends here
   )# Class ends here
