@@ -7,21 +7,16 @@ class(sto2)
 
 rm(`[.SmallTableObject`)
 '[.SmallTableObject' <- function(o = NULL, x = NULL, y = NULL){
-  print("start1"); 
-  print("o:"); 
-  print(o); 
-  print("x"); 
-  print(x); 
-  print("y:"); 
-  print(y); 
-  print("fin")
   tmp <- o$subset(x = x, y = y, value = NULL)
   return(tmp)
   } 
-sto2[, ]
-sto2[1, 1]
-sto2[, 1]
-sto2[1, ]
+sto2[, ] # Should work.
+sto2[1, 1] # Should work.
+sto2[, 1] # Should work.
+sto2[-1, ] # Should work.
+sto2[, -1] # Should work.
+sto2[1010101010101, ] # Should kind of work, return NA for all values.
+sto2[, 1010101010101] # Should not work.
 
 
 rm(`[<-.SmallTableObject`)
