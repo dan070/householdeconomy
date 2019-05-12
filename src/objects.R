@@ -6,6 +6,7 @@
 
 
 
+
 # Objects used to simplify handling of data to and fro the database.
 
 
@@ -47,7 +48,7 @@ SmallTableObject <-
           }
           if (!is.null(x) && is.null(y)) {
             print("4th if statement.")
-            return(private$table_df[x, ])
+            return(private$table_df[x,])
           }
           
         }
@@ -80,14 +81,14 @@ SmallTableObject <-
           # Row subset, column empty.
           if (!is.null(x) && is.null(y)) {
             print("8th if statement.")
-            tmp_table_df[x,] <- value # Assign.
+            tmp_table_df[x, ] <- value # Assign.
           }
           
           # Assert: classes on temp data frame have not changed.
           tmp_class_value = lapply(X = tmp_table_df,
-                                  FUN = class)
+                                   FUN = class)
           tmp_class_df = lapply(X = private$table_df[, y],
-                               FUN = class)
+                                FUN = class)
           checkmate::assert_set_equal(x = tmp_class_df,
                                       y = tmp_class_value,
                                       ordered = T)
@@ -341,8 +342,37 @@ SmallTableObject <-
             value = private$table_df
           )
           # Update private hash (of new table).
-          private$table_hash <- private$hash_data_frame(private$table_df)
+          private$table_hash <-
+            private$hash_data_frame(private$table_df)
         } # if private$dbtype == "sqlite" ends here.
       }# func:save_table_to_database ends here.
     )# Private fields ends here
   )# Class ends here
+
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~
+# Overloading
+# [ and [<- operators.
+#~~~~~~~~~~~~~~~~~~~~~~~~
+
+rm(`[.SmallTableObject`)
+'[.SmallTableObject' <- function(o = NULL,
+                                 x = NULL,
+                                 y = NULL) {
+  tmp <- o$subset(x = x, y = y, value = NULL)
+  return(tmp)
+}
+
+
+
+rm(`[<-.SmallTableObject`)
+'[<-.SmallTableObject' <-
+  function(o = NULL,
+           x = NULL,
+           y = NULL,
+           value = NULL) {
+    tmp <- o$subset(x = x, y = y, value = value)
+    return(tmp)
+  }
