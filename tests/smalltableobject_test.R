@@ -85,7 +85,9 @@ db <- tempdbpath[[1]]
 for(db in tempdbpath){
   
   # /////////////////////////////////////////////////////////////////////
-  # Create random table for subsequent tests
+  #
+  # Create table with test data
+  #
   # /////////////////////////////////////////////////////////////////////
   
   # Create connection object to sqlite.
@@ -162,6 +164,45 @@ for(db in tempdbpath){
   
   # Disconnect database.
   DBI::dbDisconnect(con_temp)
+
+  
+  
+  # /////////////////////////////////////////////////////////////////////
+  # Check overloaded operators
+  #
+  # Create a sto on table.
+  # Use [,] notation to read from table.
+  # /////////////////////////////////////////////////////////////////////
+  # Create sto object.
+  sto2 <- NULL
+  sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
+  print(class(sto2))
+  
+  # Get original table.  
+  con_temp <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = db)
+  mytemp <- DBI::dbGetQuery(con_temp, "select * from test1")
+  DBI::dbDisconnect(con_temp)
+  
+  # 
+  TODO: 
+    write a bunch of tests here, for subsetting.
+  And subvert all tests to force out errors that are common.
+    1. regular notation on x and y
+    2. using boolean vector
+    3. using the set itself sto[sto[, 1]>10000, ]
+    4. sto[, "a"]
+    5. out of range testing, should not work, x and y dimension.
+    6. abuse notation generally
+    
+  sto2[, ] # Should work.
+  sto2[1, 1] # Should work.
+  sto2[, 1] # Should work.
+  sto2[-1, ] # Should work.
+  sto2[, -1] # Should work.
+  sto2[1010101010101, ] # Should kind of work, return NA for all values.
+  sto2[, 1010101010101] # Should not work.
+  sto2[sto2[, 1] > 10000000, ]
+  
   
   # /////////////////////////////////////////////////////////////////////
   # Check updates on each column.
@@ -172,23 +213,44 @@ for(db in tempdbpath){
   # Set each column to NA, one at a time, and write back.
   # /////////////////////////////////////////////////////////////////////
   
-  # Create sto object.
-  sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
 
   # Get original table.  
   con_temp <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = db)
   mytemp <- DBI::dbGetQuery(con_temp, "select * from test1")
   DBI::dbDisconnect(con_temp)
-
+  
   # Change 1 value in each column and write back.  
   sto2[1, 1]
   sto2 <- NULL
 
-  ## TODO: MAJOR REWRITE
+  
   # Overload the operators [], as if this was a genuine data frame.
   # Send in a value then modify the underlying data base.
   # Read, then just return the DF.
-  # 
+  # Assign, and update the underlying table.
+  
+  # Case 1
+  tmp <- sto2[1, ]
+  sto2[, ] <- tmp
+  sto2[, 1]
+  
+  # Case 2
+  sto2[1, 1] <- 100
+  
+  
+  
+  sto2[, 1] <- 100
+  sto2[1, ] <- 100
+  
+  class(sto2)
+  
+  
+  # test what happens when abusing the notation
+  tmp <- cars
+  tmp[1, 1] <- NA
+  tmp[, 1] <- "2a"
+  lapply(tmp, class)
+  
   
   
   # Clear the local copy of table and randomise a new, 100 rows for each column.
