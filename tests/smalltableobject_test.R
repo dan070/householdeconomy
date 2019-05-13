@@ -11,7 +11,7 @@ tests_assert <- checkmate::makeAssertCollection()
 # ~~~~~~
 
 # /////////////////////////////////////////////////////////////////////
-# Try creating sto from a nonexistent database. Should generate error.
+# Test: Try creating sto from a nonexistent database. Should generate error.
 # /////////////////////////////////////////////////////////////////////
 test_name <- "Create table object from nonexistent db should not be possible."
 test_status <- F
@@ -35,7 +35,7 @@ tests_assert$push(msg = paste(ifelse(test_status, "PASS", "FAIL"), ":", test_nam
 
 
 # /////////////////////////////////////////////////////////////////////
-# Try creating sto from a nonexistant table.
+# Test: Try creating sto from a nonexistant table.
 # /////////////////////////////////////////////////////////////////////
 test_name <- "Create table object from nonexistent table, should not be possible."
 test_status <- F
@@ -66,13 +66,13 @@ tests_assert$getMessages()
 
 
 # /////////////////////////////////////////////////////////////////////
-# Try writing to a db(file) with no permission to write to.
+# Test: Try writing to a db(file) with no permission to write to.
 # /////////////////////////////////////////////////////////////////////
 # ## NOT IMPLEMENTED YET.
 
 
 # /////////////////////////////////////////////////////////////////////
-# Try faulty "dbtype" arguments.
+# Test: Try faulty "dbtype" arguments.
 # /////////////////////////////////////////////////////////////////////
 # ## NOT IMPLEMENTED YET.
 
@@ -117,11 +117,11 @@ for(db in tempdbpath){
                  '', 
                  x'0419ffff' )
                  ")
-  # Set seed and table size.
+  # Set seed & table size.
   size_n <- 100
   set.seed(seed = 20190427, kind = "default")
   
-  # Make random numbers and ...
+  # Generate random numbers to df, and ...
   randomrows <- data.frame(
     a = sample.int(n = 999999999999, size = size_n) * sample(
       x = c(-1, 1),
@@ -149,7 +149,7 @@ for(db in tempdbpath){
     ))
   )
   
-  # ... insert into table.
+  # ... prep for SQL insert...
   inserts <-
     paste(apply(
       X = randomrows,
@@ -158,43 +158,107 @@ for(db in tempdbpath){
         paste("(", paste(x, collapse = ","), ")")
     ), collapse = ",")
   
-  # Insert.
+  # ... and insert into data base table.
   DBI::dbExecute(con_temp, paste("INSERT INTO test1
                                  VALUES", inserts))
   
-  # Disconnect database.
+  # Disconnect db connection.
   DBI::dbDisconnect(con_temp)
 
   
   
   # /////////////////////////////////////////////////////////////////////
-  # Check overloaded operators
-  #
-  # Create a sto on table.
-  # Use [,] notation to read from table.
+  # Test: Check subset operator. ie. use [,] notation to read from table.
   # /////////////////////////////////////////////////////////////////////
   # Create sto object.
   sto2 <- NULL
   sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
-  print(class(sto2))
-  
+
+    
   # Get original table.  
   con_temp <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = db)
   mytemp <- DBI::dbGetQuery(con_temp, "select * from test1")
   DBI::dbDisconnect(con_temp)
   
   # 
-  TODO: 
-    write a bunch of tests here, for subsetting.
-  And subvert all tests to force out errors that are common.
-    1. regular notation on x and y
-    2. using boolean vector
-    3. using the set itself sto[sto[, 1]>10000, ]
-    4. sto[, "a"]
-    5. out of range testing, should not work, x and y dimension.
-    6. abuse notation generally
+
+  test_name <- "Subsetting data using vectors length 1."
+  test_status <- F
+  tictoc::tic(test_name)
+  tryCatch({
     
+    # Test: Use both col and row subsetting.
+    test_name <- "Subsetting with col and row together, ie: sto[19, 25]"
+    tictoc::tic(test_name)
+    tmp <- sto2[1, 1]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 1) 
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    
+    # Test: Use row subsetting.
+    test_name <- "Subsetting with row, ie: sto[27, ]"
+    tictoc::tic(test_name)
+    tmp <- sto2[1, ]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 4)
+    checkmate::assert_true(nrow(tmp) == 1)
+    checkmate::assert_true(class(tmp) == "data.frame")
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    
+    # Test: Use col subsetting.
+    test_name <- "Subsetting with col, ie: sto[, 3]"
+    tictoc::tic(test_name)
+    tmp <- sto2[, 1]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 102)
+    checkmate::assert_true(nrow(tmp) == 1)
+    checkmate::assert_true(class(tmp) == "data.frame")
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+
+    TODO : 
+    keep writing tests for subsetting only.
+    # TODO: 
+    #   write a bunch of tests here, for subsetting.
+    # And subvert all tests to force out errors that are common.
+    #   1. regular notation on x and y
+    #   2. using boolean vector
+    #   3. using the set itself sto[sto[, 1]>10000, ]
+    #   4. sto[, "a"]
+    #   5. out of range testing, should not work, x and y dimension.
+    #   6. abuse notation generally
+    #   7. run apply functions on data.
+    
+    # Test passed: TRUE.
+    test_status <- T
+  }, error = function(e){
+    test_name <<- "Subsetting data using vectors length 1, general error." # General error.
+    test_status <<- F # Anything could have gone wrong here. 
+  }, finally = {
+    sto1 <- NULL # Clear object.
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    test_name <- "Subsetting data using vectors length 1."
+    tests_assert$push(msg = paste(ifelse(test_status, "PASS", "FAIL"), ":", test_name, ":", secs, " secs" ))
+    
+  })
+  
+  
+  test_status <- NULL
   sto2[, ] # Should work.
+  
+  tests_assert$push(msg = paste(ifelse(test_status, "PASS", "FAIL"), ":", test_name, ":", secs, " secs" ))
+  
+  
+  
   sto2[1, 1] # Should work.
   sto2[, 1] # Should work.
   sto2[-1, ] # Should work.
