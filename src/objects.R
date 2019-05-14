@@ -7,6 +7,7 @@
 
 
 
+
 # Objects used to simplify handling of data to and fro the database.
 
 
@@ -103,41 +104,6 @@ SmallTableObject <-
           # Return
           return(self)
         }
-        
-        
-        
-        #
-        # tryCatch(
-        #   expr = {
-        #     # Get target table (again)
-        #     table_verification <-
-        #       RSQLite::dbReadTable(conn = private$connection, name = private$tablename)
-        #     # Check classes
-        #     checkmate::assertDataFrame(x = private$table_df,
-        #                                types = unlist(lapply(table_verification, class)),
-        #                                add = assertcollection)
-        #     # Check names
-        #     checkmate::assertSetEqual(
-        #       names(private$table_df),
-        #       names(table_verification),
-        #       ordered = T,
-        #       add = assertcollection
-        #     )
-        #
-        #   },
-        #   error = function(e) {
-        #     assertcollection$push("Could not read the table on data base side, while checking for data integrity.")
-        #   },
-        #   finally = {
-        #   }
-        # )
-        
-        # # Do hashing of the columns, and compare.
-        # hash_1 <- private$hash_data_frame(table_verification)
-        # hash_2 <- private$table_hash
-        # if(hash_1 != hash_2)
-        #   assertcollection$push("")
-        
       },
       
       
@@ -273,7 +239,10 @@ SmallTableObject <-
       user = "",
       pass = "",
       tablename = "",
-      connection = NA,
+      connection = NA, 
+      ## TODO: remove "connection" field, and open connection when needed. Else errors like
+      # Warning message:
+      # call dbDisconnect() when finished working with a connection 
       table_df = NA,
       table_types = NA,
       table_hash = NA,
