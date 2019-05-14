@@ -161,7 +161,6 @@ for(db in tempdbpath){
   # ... and insert into data base table.
   DBI::dbExecute(con_temp, paste("INSERT INTO test1
                                  VALUES", inserts))
-  
   # Disconnect db connection.
   DBI::dbDisconnect(con_temp)
 
@@ -264,19 +263,67 @@ for(db in tempdbpath){
     checkmate::assert_true(nrow(tmp) == 1)
     # Not all classes (eg bit64::integer64) returns NA in this setting.
     # So we cannot really test for NA on all columns for "ghost" rows.
-    TODO: figure out how ghost rows can be checked. Or if we leave it like that. Should most be NA??
-    mytemp[99999999999, ]
-    mytemp[200, ]
-    str(mytemp)
-    mytemp[mytemp$a == 9218868437227407266, ]
-
-    mytemp2 <- mytemp
-    
-    
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
     
+    # Test: negative row subsetting 
+    test_name <- "Subsetting negative rows ie: sto[ -1, ]"
+    tictoc::tic(test_name)
+    tmp <- sto2[-c(1:100), ]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 4)
+    checkmate::assert_true(nrow(tmp) == 2)
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    
+    
+    # Test: negative col subsetting 
+    test_name <- "Subsetting negative cols ie: sto[ , -1]"
+    tictoc::tic(test_name)
+    tmp <- sto2[, -c(1:2)]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 2)
+    checkmate::assert_true(nrow(tmp) == 102)
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    
+    # Test: negative row and col subsetting
+    test_name <- "Subsetting negative rows and cols ie: sto[ -1, -1]"
+    tictoc::tic(test_name)
+    tmp <- sto2[-c(1:100), -c(1:2)]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 2)
+    checkmate::assert_true(nrow(tmp) == 2)
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    
+    # Test: select all the data
+    test_name <- "Subsetting total data frame ie: sto[ , ]"
+    tictoc::tic(test_name)
+    tmp <- sto2[, ]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 4)
+    checkmate::assert_true(nrow(tmp) == 102)
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    
+    # Test: select something outsider sto[, "nonexistingcolumn"]    
+    # Test: select  sto[boolean2dimensionalmatrix]
+    # Test: select  sto[-9999, ]
+    # Test: select  sto[-9999, ]
+    # Test: select sto[NULL, NULL]
+    # Test: select sto[NA, NA]
+    # TEST: run apply :    lapply(sto2[, ], class)
+    # Test: 
     
     
     tests_assert$getMessages()
@@ -298,7 +345,7 @@ for(db in tempdbpath){
     test_name <- "Subsetting data"
     test_status <- T
   }, error = function(e){
-    test_name <<- "Subsetting data using vectors length 1, general error." # General error.
+    ##test_name <<- "Subsetting data using vectors length 1, general error." # General error.
     test_status <<- F # Anything could have gone wrong here. 
   }, finally = {
     sto1 <- NULL # Clear object.
