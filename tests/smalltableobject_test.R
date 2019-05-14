@@ -316,6 +316,8 @@ for(db in tempdbpath){
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
     
+    
+    TODO: write these tests, then conclude the subsetting section.
     # Test: select something outsider sto[, "nonexistingcolumn"]    
     # Test: select  sto[boolean2dimensionalmatrix]
     # Test: select  sto[-9999, ]
@@ -325,21 +327,12 @@ for(db in tempdbpath){
     # TEST: run apply :    lapply(sto2[, ], class)
     # Test: 
     
+
     
+        
     tests_assert$getMessages()
     
-    TODO : 
-    keep writing tests for subsetting only.
-    # TODO: 
-    #   write a bunch of tests here, for subsetting.
-    # And subvert all tests to force out errors that are common.
-    #   1. regular notation on x and y
-    #   2. using boolean vector
-    #   3. using the set itself sto[sto[, 1]>10000, ]
-    #   4. sto[, "a"]
-    #   5. out of range testing, should not work, x and y dimension.
-    #   6. abuse notation generally
-    #   7. run apply functions on data.
+    
     
     # Test passed: TRUE.
     test_name <- "Subsetting data"
@@ -356,20 +349,8 @@ for(db in tempdbpath){
   })
   
   
-  test_status <- NULL
-  sto2[, ] # Should work.
-  
-  tests_assert$push(msg = paste(ifelse(test_status, "PASS", "FAIL"), ":", test_name, ":", secs, " secs" ))
-  
-  
-  
-  sto2[1, 1] # Should work.
-  sto2[, 1] # Should work.
-  sto2[-1, ] # Should work.
-  sto2[, -1] # Should work.
-  sto2[1010101010101, ] # Should kind of work, return NA for all values.
-  sto2[, 1010101010101] # Should not work.
-  sto2[sto2[, 1] > 10000000, ]
+
+    
   
   
   # /////////////////////////////////////////////////////////////////////
@@ -380,8 +361,23 @@ for(db in tempdbpath){
   # Change 1 value to NA in each column, and write back for each change.
   # Set each column to NA, one at a time, and write back.
   # /////////////////////////////////////////////////////////////////////
-  
 
+  # Test: Pin one unique row. Update 1 cell. Compare to data base.  
+  # Test: Pin 10 unique rows. Update 1 cell. Compare to data base.  
+  # Test: Pin 10 unique rows. Update all cells to NA. Compare to data base.
+  # Test: Pin 1 unique rows. Delete it. Compare to data base.
+  # Test: Pin 10 unique rows. Delete them. Compare to data base.
+  # Test: Use boolean and named subsetting of columns. Update. Compare to data base.
+  # Test: Use same dataframe to subset 10 rows. Delete. Compare to data base.
+  # Test: Update each full column with new values = x4. Compare to data base.
+  # Test: Update a whole row with new values = x4. Compare to data base.
+  # Test: Try updating 1 cell in each column, with wrong type. Compare to data base.
+  # Test: Try replacing 1 column with wrong type. Compare to data base.
+  # Test: Try NULLing entire frame. Compare to data base.
+  # Test: Add 1 row to empty frame. What happens. Compare to data base.
+  # Test: Add 1 row to empty frame. Can I change data type? Compare to data base.
+  
+    
   # Get original table.  
   con_temp <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = db)
   mytemp <- DBI::dbGetQuery(con_temp, "select * from test1")
