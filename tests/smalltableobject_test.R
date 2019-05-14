@@ -218,12 +218,69 @@ for(db in tempdbpath){
     checkmate::assert_true(!is.null(tmp)) 
     checkmate::assert_true(length(length(tmp)) == 1) 
     checkmate::assert_true(length(tmp) == 102)
-    checkmate::assert_true(nrow(tmp) == 1)
+    checkmate::assert_true(class(tmp) != "data.frame")
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+
+    
+    # Test: Use row subsetting with boolean vector.
+    test_name <- "Subsetting using boolean vector ie: sto[c(T, T, F....), ]"
+    tictoc::tic(test_name)
+    temp_booleanvec <- sample(x = c(TRUE, FALSE), size = nrow(sto2[,]), replace = T)
+    tmp <- sto2[temp_booleanvec, ]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 4)
+    checkmate::assert_true(nrow(tmp) == sum(temp_booleanvec))
     checkmate::assert_true(class(tmp) == "data.frame")
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
 
+    
+    # Test: Use col subsetting with column name.
+    test_name <- "Subsetting columns with name, ie: sto[ , 'a']"
+    tictoc::tic(test_name)
+    tmp <- sto2[, "a"]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 102)
+    tmp <- sto2[, "d"]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 102)
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    
+    # Test: out of range row subsetting.
+    test_name <- "Subsetting rows out of range, ie: sto[ 99999999, ]"
+    tictoc::tic(test_name)
+    tmp <- sto2[99999999, ]
+    checkmate::assert_true(!is.null(tmp)) 
+    checkmate::assert_true(length(length(tmp)) == 1) 
+    checkmate::assert_true(length(tmp) == 4)
+    checkmate::assert_true(nrow(tmp) == 1)
+    # Not all classes (eg bit64::integer64) returns NA in this setting.
+    # So we cannot really test for NA on all columns for "ghost" rows.
+    TODO: figure out how ghost rows can be checked. Or if we leave it like that. Should most be NA??
+    mytemp[99999999999, ]
+    mytemp[200, ]
+    str(mytemp)
+    mytemp[mytemp$a == 9218868437227407266, ]
+
+    mytemp2 <- mytemp
+    
+    
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    
+    
+    
+    tests_assert$getMessages()
+    
     TODO : 
     keep writing tests for subsetting only.
     # TODO: 
@@ -238,6 +295,7 @@ for(db in tempdbpath){
     #   7. run apply functions on data.
     
     # Test passed: TRUE.
+    test_name <- "Subsetting data"
     test_status <- T
   }, error = function(e){
     test_name <<- "Subsetting data using vectors length 1, general error." # General error.
@@ -246,7 +304,6 @@ for(db in tempdbpath){
     sto1 <- NULL # Clear object.
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    test_name <- "Subsetting data using vectors length 1."
     tests_assert$push(msg = paste(ifelse(test_status, "PASS", "FAIL"), ":", test_name, ":", secs, " secs" ))
     
   })
