@@ -14,27 +14,7 @@ library(rhandsontable)
 #print(getwd())
 
 
-# Predefined labels to use
-accepted_labels <- c("loans,insurance,bankfee", 
-                     "restaurant,coffee", 
-                     "entertainment",
-                     "groceries",
-                     "clothes",
-                     "cash,swish",
-                     "childcare",
-                     "salary,benefits",
-                     "transportation",
-                     "household",
-                     "medical",
-                     "other,unknown"
-                     )
 
-getdata <- function(){
-  mydb <- DBI::dbConnect(RSQLite::SQLite(), "../data/sqlite-database/econ.sqlite")
-  res <- dbGetQuery(mydb, "select * from unlabeled")
-  dbDisconnect(mydb)
-  return(res)
-}
 
 
 # Define UI for application that draws a histogram
@@ -46,26 +26,28 @@ ui <- fluidPage(
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
+        shiny::actionButton(inputId = "actionbutton_1", label = "Save"),
+        shiny::actionButton(inputId = "actionbutton_1", label = "Finish")
+        
+        
         # put something here
       ),
       
       # Show a plot of the generated distribution
       mainPanel(
-         rhandsontable::rHandsontableOutput(outputId = "rhot1"),
-         shiny::actionButton(inputId = "actionbutton_1", label = "Save")
+         rhandsontable::rHandsontableOutput(outputId = "rhot1")
       )
    )
 )
+
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   
   
-  
   output$rhot1 <- renderRHandsontable(expr = {
     print("render run")
     rhandsontable::rhandsontable(data = reactive_unlabeled() ) %>% 
-      rhandsontable::hot
       rhandsontable::hot_col(col = "manual_label", 
                              type = "dropdown",
                              source = accepted_labels,
@@ -82,6 +64,7 @@ server <- function(input, output) {
       return(getdata())
       } else {
         inp <- hot_to_r(input$rhot1)
+        print(inp[1:5, ])
       }
     
   })
