@@ -2,12 +2,6 @@
 
 
 
-
-
-
-
-
-
 # Objects used to simplify handling of data to and fro the database.
 
 
