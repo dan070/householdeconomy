@@ -4,6 +4,7 @@
 
 source("./src/objects.R")
 library(checkmate)
+library(crayon)
 tests_assert <- checkmate::makeAssertCollection()
 
 # ~~~~~~
@@ -30,7 +31,7 @@ tryCatch({
   timespent <- tictoc::toc(quiet = T)
   secs <- round(timespent$toc - timespent$tic, 4)
 })
-tests_assert$push(msg = paste(ifelse(test_status, "PASS", "FAIL"), ":", test_name, ":", secs, " secs" ))
+tests_assert$push(msg = paste(ifelse(test_status, green("PASS"), red("FAIL")), ":", test_name, ":", secs, " secs" ))
 
 
 
@@ -58,11 +59,10 @@ tryCatch({
   timespent <- tictoc::toc(quiet = T)
   secs <- round(timespent$toc - timespent$tic, 4)
 })
-tests_assert$push(msg = paste(ifelse(test_status, "PASS", "FAIL"), ":", test_name, ":", secs, " secs" ))
+tests_assert$push(msg = paste(ifelse(test_status, green("PASS"), red("FAIL")), ":", test_name, ":", secs, " secs" ))
 
 
-# 
-tests_assert$getMessages()
+
 
 
 # /////////////////////////////////////////////////////////////////////
@@ -195,7 +195,7 @@ for(db in tempdbpath){
     checkmate::assert_true(length(tmp) == 1) 
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
     # Test: Use row subsetting.
     test_name <- "Subsetting with row, ie: sto[27, ]"
@@ -208,7 +208,7 @@ for(db in tempdbpath){
     checkmate::assert_true(class(tmp) == "data.frame")
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
     # Test: Use col subsetting.
     test_name <- "Subsetting with col, ie: sto[, 3]"
@@ -220,7 +220,7 @@ for(db in tempdbpath){
     checkmate::assert_true(class(tmp) != "data.frame")
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
 
     
     # Test: Use row subsetting with boolean vector.
@@ -235,7 +235,7 @@ for(db in tempdbpath){
     checkmate::assert_true(class(tmp) == "data.frame")
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
 
     
     # Test: Use col subsetting with column name.
@@ -251,7 +251,7 @@ for(db in tempdbpath){
     checkmate::assert_true(length(tmp) == 102)
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
     # Test: out of range row subsetting.
     test_name <- "Subsetting rows out of range, ie: sto[ 99999999, ]"
@@ -265,7 +265,7 @@ for(db in tempdbpath){
     # So we cannot really test for NA on all columns for "ghost" rows.
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
     # Test: negative row subsetting 
     test_name <- "Subsetting negative rows ie: sto[ -1, ]"
@@ -277,7 +277,7 @@ for(db in tempdbpath){
     checkmate::assert_true(nrow(tmp) == 2)
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
     
     # Test: negative col subsetting 
@@ -290,7 +290,7 @@ for(db in tempdbpath){
     checkmate::assert_true(nrow(tmp) == 102)
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
     # Test: negative row and col subsetting
     test_name <- "Subsetting negative rows and cols ie: sto[ -1, -1]"
@@ -302,7 +302,7 @@ for(db in tempdbpath){
     checkmate::assert_true(nrow(tmp) == 2)
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
     # Test: select all the data
     test_name <- "Subsetting total data frame ie: sto[ , ]"
@@ -314,12 +314,31 @@ for(db in tempdbpath){
     checkmate::assert_true(nrow(tmp) == 102)
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste("PASS", ":", test_name, ":", secs, " secs" ))
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
+    # Test: select something outside columns sto[, "nonexistingcolumn"]
+    test_name <-
+      "Subsetting outside data frame ie: sto[ , 'nonexistingcolumn']"
+    tictoc::tic(test_name)
+    tryCatch(
+      expr = {
+        tmp <- sto2[, "danistheman"]
+        timespent <- tictoc::toc(quiet = T)
+        secs <- round(timespent$toc - timespent$tic, 4)
+        tests_assert$push(msg = paste(red("FAIL"), ":", test_name, ":", secs, " secs"))
+        stop()
+      }
+      ,
+      error = function(e) {
+        timespent <- tictoc::toc(quiet = T)
+        secs <- round(timespent$toc - timespent$tic, 4)
+        tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs"))
+      }
+    )
     
-    TODO: write these tests, then conclude the subsetting section.
-    # Test: select something outsider sto[, "nonexistingcolumn"]    
     # Test: select  sto[boolean2dimensionalmatrix]
+    sto2[]
+    
     # Test: select  sto[-9999, ]
     # Test: select  sto[-9999, ]
     # Test: select sto[NULL, NULL]
@@ -328,14 +347,10 @@ for(db in tempdbpath){
     # Test: 
     
 
-    
         
-    tests_assert$getMessages()
-    
-    
     
     # Test passed: TRUE.
-    test_name <- "Subsetting data"
+    test_name <- "Subsetting data tests all of them."
     test_status <- T
   }, error = function(e){
     ##test_name <<- "Subsetting data using vectors length 1, general error." # General error.
@@ -344,8 +359,7 @@ for(db in tempdbpath){
     sto1 <- NULL # Clear object.
     timespent <- tictoc::toc(quiet = T)
     secs <- round(timespent$toc - timespent$tic, 4)
-    tests_assert$push(msg = paste(ifelse(test_status, "PASS", "FAIL"), ":", test_name, ":", secs, " secs" ))
-    
+    tests_assert$push(msg = paste(ifelse(test_status, green("PASS"), red$bold("FAIL")), ":", test_name, ":", secs, " secs" ))
   })
   
   
@@ -378,42 +392,7 @@ for(db in tempdbpath){
   # Test: Add 1 row to empty frame. Can I change data type? Compare to data base.
   
     
-  # Get original table.  
-  con_temp <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = db)
-  mytemp <- DBI::dbGetQuery(con_temp, "select * from test1")
-  DBI::dbDisconnect(con_temp)
   
-  # Change 1 value in each column and write back.  
-  sto2[1, 1]
-  sto2 <- NULL
-
-  
-  # Overload the operators [], as if this was a genuine data frame.
-  # Send in a value then modify the underlying data base.
-  # Read, then just return the DF.
-  # Assign, and update the underlying table.
-  
-  # Case 1
-  tmp <- sto2[1, ]
-  sto2[, ] <- tmp
-  sto2[, 1]
-  
-  # Case 2
-  sto2[1, 1] <- 100
-  
-  
-  
-  sto2[, 1] <- 100
-  sto2[1, ] <- 100
-  
-  class(sto2)
-  
-  
-  # test what happens when abusing the notation
-  tmp <- cars
-  tmp[1, 1] <- NA
-  tmp[, 1] <- "2a"
-  lapply(tmp, class)
   
   
   
@@ -437,16 +416,12 @@ for(db in tempdbpath){
   # Write back should fail.
   
   
-  #tmp <- DBI::dbGetQuery(con_temp, "drop table test1")
-  tmp <- DBI::dbGetQuery(con_temp, "select * from test1")
-  #tmp <- DBI::dbGetQuery(con_temp, "delete from  test1")
-  str(tmp)
-  tmp$blob
-  
   # Disconnect (kills all temporary databases)
-  DBI::dbDisconnect(con_temp)
+  ######DBI::dbDisconnect(con_temp)
     
 }
 
+# Print Asserts messages
+apply(as.data.frame(tests_assert$getMessages()), 1, FUN = function(x)cat(x, "\n"))        
 
 
