@@ -19,34 +19,32 @@ SmallTableObject <-
       # Used in tandem with S3-overloaded operator.
       # Handles both assignment and selection/subsetting operations.
       #~~~~~~~~~~~~~~~~~~~~~~~~
-      subset = function(x = NULL,
-                        y = NULL,
+      subset = function(x,
+                        y,
                         value = NULL) {
-        print("subset function called.")
-        print(paste("x = " , x))
-        print(paste("y = " , y))
-        print(paste("is null value", is.null(value)))
-        
-        #if parameter "value" = null, return frame (possibly subsetted)
-        if (is.null(value)) {
-          if (is.null(x) && is.null(y)) {
-            print("1st if statement.")
-            return(private$table_df)
-          }
-          if (!is.null(x) && !is.null(y)) {
-            print("2nd if statement.")
-            return(private$table_df[x, y])
-          }
-          if (is.null(x) && !is.null(y)) {
-            print("3nd if statement.")
-            return(private$table_df[, y])
-          }
-          if (!is.null(x) && is.null(y)) {
-            print("4th if statement.")
-            return(private$table_df[x,])
-          }
-          
+
+        # if paraemters are missing
+        if(is.null(value) && missing(x) && missing(y)){
+          print("1st if")
+          return(private$table_df[,])
         }
+        if(is.null(value) && !missing(x) && missing(y)){
+          print("2nd if")
+          return(private$table_df[x])
+        }
+        if(is.null(value) && missing(x) && !missing(y)){
+          print("3d if")
+          return(private$table_df[, y])
+        }
+        if(is.null(value) && !missing(x) && !missing(y)){
+          print("4th if")
+          if(is.null(x) && !is.null(y)) return(private$table_df[, y]) # Use y if specified but x null.
+          if(is.null(y) && !is.null(x)) return(private$table_df[x, ]) # Use x if y is null.
+          if(is.null(x) && is.null(y)) return(private$table_df[, ])
+          return(private$table_df[x, y]) # Else use both x y, as specified.
+        }
+
+        
         
         # If parameter "value" is not null, requires updating the underlying data.
         if (!is.null(value)) {
@@ -105,9 +103,9 @@ SmallTableObject <-
       # ~ Print ~
       #~~~~~~~~~~~~~~~~~~~~~~~~
       print = function(...) {
-        print("SmallTableObject")
-        print(paste("db type : ", private$dbtype))
-        print(paste("table name : ", private$tablename))
+        cat("SmallTableObject\n")
+        cat(paste("db type : ", private$dbtype, "\n"))
+        cat(paste("table name : ", private$tablename, "\n"))
         invisible(self)
       },
       
