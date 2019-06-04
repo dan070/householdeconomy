@@ -167,9 +167,10 @@ for(db in tempdbpath){
   
   
   # /////////////////////////////////////////////////////////////////////
-  # Test: Check subset operator. ie. use [,] notation to read from table.
-  # /////////////////////////////////////////////////////////////////////
   # Create sto object.
+  # /////////////////////////////////////////////////////////////////////
+
+  # Create object from sqlite.
   sto2 <- NULL
   sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
 
@@ -181,6 +182,10 @@ for(db in tempdbpath){
   
   # 
 
+  # /////////////////////////////////////////////////////////////////////
+  # Test: Check subset operator. 
+  # ie. use [,] notation to read from sto.
+  # /////////////////////////////////////////////////////////////////////
   test_name <- "Subsetting data using vectors length 1."
   test_status <- F
   tictoc::tic(test_name)
@@ -337,14 +342,54 @@ for(db in tempdbpath){
     )
     
     # Test: select  sto[boolean2dimensionalmatrix]
-    sto2[]
+    # TODO. Not implemented yet.
+         
+    # Test: select  sto[-9999, ]
+    test_name <- "Subsetting outside data frame ie: sto[-99999999 , ]"
+    tictoc::tic(test_name)
+    checkmate::assert_set_equal(dim(sto2[-99999, ]), dim(sto2[]), add = tests_assert)
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
-    # Test: select  sto[-9999, ]
-    # Test: select  sto[-9999, ]
     # Test: select sto[NULL, NULL]
+    # NB: At the moment I'm unable to implement this behaviour!
+    # NB: Supposed to give an empty data frame back. 
+    # > cars[NULL, NULL]
+    # data frame with 0 columns and 0 rows
+    
+    
     # Test: select sto[NA, NA]
+    test_name <-
+      "Subsetting with NA ie: sto[NA , NA]"
+    tictoc::tic(test_name)
+    tryCatch(
+      expr = {
+        tmp <- sto2[NA, NA]
+        timespent <- tictoc::toc(quiet = T)
+        secs <- round(timespent$toc - timespent$tic, 4)
+        tests_assert$push(msg = paste(red("FAIL"), ":", test_name, ":", secs, " secs"))
+        stop()
+      }
+      ,
+      error = function(e) {
+        timespent <- tictoc::toc(quiet = T)
+        secs <- round(timespent$toc - timespent$tic, 4)
+        tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs"))
+      }
+    )
+
+        
     # TEST: run apply :    lapply(sto2[, ], class)
-    # Test: 
+    test_name <-
+      "Subsetting with NA ie: sto[NA , NA]"
+    tictoc::tic(test_name)
+    checkmate::assert_set_equal(sapply(mytemp, class)
+                                ,   sapply(sto2[], class)
+                                , add = tests_assert)
+    timespent <- tictoc::toc(quiet = T)
+    secs <- round(timespent$toc - timespent$tic, 4)
+    tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs"))
     
 
         
@@ -370,13 +415,15 @@ for(db in tempdbpath){
   # /////////////////////////////////////////////////////////////////////
   # Check updates on each column.
   #
-  # Create a sto on table.
+  # Create a sto on table. Done: use above code for that.
   # Change 1 value in each column (add 1, or "a"). Write back each change.
   # Change 1 value to NA in each column, and write back for each change.
   # Set each column to NA, one at a time, and write back.
   # /////////////////////////////////////////////////////////////////////
 
   # Test: Pin one unique row. Update 1 cell. Compare to data base.  
+  nrow(sto2[])
+  
   # Test: Pin 10 unique rows. Update 1 cell. Compare to data base.  
   # Test: Pin 10 unique rows. Update all cells to NA. Compare to data base.
   # Test: Pin 1 unique rows. Delete it. Compare to data base.
@@ -422,6 +469,5 @@ for(db in tempdbpath){
 }
 
 # Print Asserts messages
-apply(as.data.frame(tests_assert$getMessages()), 1, FUN = function(x)cat(x, "\n"))        
-
+tests_assert$getMessages() %+% "\n" %>% cat
 
