@@ -22,6 +22,8 @@ SmallTableObject <-
       subset = function(x,
                         y,
                         value = NULL) {
+        
+        print(paste("nargs() = ", nargs()))
 
         # if paraemters are missing
         if(is.null(value) && missing(x) && missing(y)){
