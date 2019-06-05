@@ -422,7 +422,12 @@ for(db in tempdbpath){
   # /////////////////////////////////////////////////////////////////////
 
   # Test: Pin one unique row. Update 1 cell. Compare to data base.  
-  nrow(sto2[])
+  
+  tmprow <- sample(nrow(sto2[]), 1)
+  sto2[tmprow, ]
+  TODO: HANDLE sto2[1] should return a column, not a row!  
+  
+  
   nrow(cars)
   # Test: Pin 10 unique rows. Update 1 cell. Compare to data base.  
   # Test: Pin 10 unique rows. Update all cells to NA. Compare to data base.
