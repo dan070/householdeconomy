@@ -2,6 +2,7 @@
 
 
 
+
 # Objects used to simplify handling of data to and fro the database.
 
 
@@ -14,40 +15,61 @@ SmallTableObject <-
     #~~~~~~~~~~~~~~~~~~~~~~~~
     public = list(
       #~~~~~~~~~~~~~~~~~~~~~~~~
-      # ~ Function: Subset ~
+      # ~ Function: Subset Read ~
       # A rewrite of R:s special function [ and [<-
       # Used in tandem with S3-overloaded operator.
-      # Handles both assignment and selection/subsetting operations.
+      # Handles selection/subsetting operations.
       #~~~~~~~~~~~~~~~~~~~~~~~~
-      subset = function(x,
-                        y,
-                        value = NULL) {
+      subset_read = function(x,
+                             y,
+                             value = NULL) {
+        print("subset_read :")
+        #print(paste("x = ", x))
+        #print(paste("y = ", y))
+        print(paste("x", missing(x)))
+        print(paste("y", missing(y)))
+        print(paste("isnullx", is.null(x)))
+        print(paste("isnully", is.null(y)))
         
         print(paste("nargs() = ", nargs()))
-
-        # if paraemters are missing
-        if(is.null(value) && missing(x) && missing(y)){
+        
+        # if parameters are missing
+        if (is.null(value) && missing(x) && missing(y)) {
           print("1st if")
-          return(private$table_df[,])
+          return(private$table_df[, ])
         }
-        if(is.null(value) && !missing(x) && missing(y)){
+        if (is.null(value) && !missing(x) && missing(y)) {
           print("2nd if")
           return(private$table_df[x])
         }
-        if(is.null(value) && missing(x) && !missing(y)){
+        if (is.null(value) && missing(x) && !missing(y)) {
           print("3d if")
           return(private$table_df[, y])
         }
-        if(is.null(value) && !missing(x) && !missing(y)){
+        if (is.null(value) && !missing(x) && !missing(y)) {
           print("4th if")
-          if(is.null(x) && !is.null(y)) return(private$table_df[, y]) # Use y if specified but x null.
-          if(is.null(y) && !is.null(x)) return(private$table_df[x, ]) # Use x if y is null.
-          if(is.null(x) && is.null(y)) return(private$table_df[, ])
+          if (is.null(x) &&
+              !is.null(y))
+            return(private$table_df[, y]) # Use y if specified but x null.
+          if (is.null(y) &&
+              !is.null(x))
+            return(private$table_df[x,]) # Use x if y is null.
+          if (is.null(x) && is.null(y))
+            return(private$table_df[,])
           return(private$table_df[x, y]) # Else use both x y, as specified.
         }
-
+      },
+      
+      #~~~~~~~~~~~~~~~~~~~~~~~~
+      # ~ Function: Subset Write ~
+      # A rewrite of R:s special function [ and [<-
+      # Used in tandem with S3-overloaded operator.
+      # Handles assignment & subsetting operations.
+      #~~~~~~~~~~~~~~~~~~~~~~~~
+      
+      subset_write = function(x, y, value) {
         
-        
+        print("Subset_write:")
         # If parameter "value" is not null, requires updating the underlying data.
         if (!is.null(value)) {
           # Make copy and assign to that firstly to flush out errors implicitly using Rs own error checking.
@@ -76,7 +98,7 @@ SmallTableObject <-
           # Row subset, column empty.
           if (!is.null(x) && is.null(y)) {
             print("8th if statement.")
-            tmp_table_df[x, ] <- value # Assign.
+            tmp_table_df[x,] <- value # Assign.
           }
           
           # Assert: classes on temp data frame have not changed.
@@ -233,10 +255,10 @@ SmallTableObject <-
       user = "",
       pass = "",
       tablename = "",
-      connection = NA, 
+      connection = NA,
       ## TODO: remove "connection" field, and open connection when needed. Else errors like
       # Warning message:
-      # call dbDisconnect() when finished working with a connection 
+      # call dbDisconnect() when finished working with a connection
       table_df = NA,
       table_types = NA,
       table_hash = NA,
@@ -321,10 +343,10 @@ SmallTableObject <-
 #~~~~~~~~~~~~~~~~~~~~~~~~
 
 rm(`[.SmallTableObject`)
-'[.SmallTableObject' <- function(o = NULL,
-                                 x = NULL,
-                                 y = NULL) {
-  tmp <- o$subset(x = x, y = y, value = NULL)
+'[.SmallTableObject' <- function(o,
+                                 x,
+                                 y) {
+  tmp <- o$subset_read(x = x, y = y, value = NULL)
   return(tmp)
 }
 
@@ -336,6 +358,6 @@ rm(`[<-.SmallTableObject`)
            x = NULL,
            y = NULL,
            value = NULL) {
-    tmp <- o$subset(x = x, y = y, value = value)
+    tmp <- o$subset_write(x = x, y = y, value = value)
     return(tmp)
   }
