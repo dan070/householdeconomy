@@ -1,32 +1,28 @@
-f1 <- function(x, y, value){
-  
+
+
+tmp <- list(a=1)
+class(tmp) <- "myclass"
+'[.myclass' <- function(o, x, y) {
   print(names(sys.call()))
+  print(nargs() - 1)
   print(missing(x))
   print(missing(y))
-  print(missing(value))
-  
 }
+tmp[,]  # Check nargs and missing!!!!!!! Solution found.
+tmp[1]  
+tmp[1, ]  
 
-f1()
-f1(x = 1)
-f1(, y = 1)
-f1(NULL)
-f1(NULL, y = 2)
-
-`[.data.frame`
 
 
 source("./src/objects.R")
 rm(`[.SmallTableObject`)
-'[.SmallTableObject' <- function(o,
-                                 x,
-                                 y) {
+'[.SmallTableObject' <- function(o, x, y) {
   print("overloaded:")
-  #print(o)
-  #print(x)
-  #print(y)
+  print(nargs() - 1)
+  print(missing(x))
+  print(missing(y))
   print("end overloaded:")
-  
+  return()  
   print("call")
 
   tmp <- o$subset_read(x, y)
