@@ -22,42 +22,34 @@ SmallTableObject <-
       #~~~~~~~~~~~~~~~~~~~~~~~~
       subset_read = function(x,
                              y,
-                             value = NULL) {
-        print("subset_read :")
-        #print(paste("x = ", x))
-        #print(paste("y = ", y))
-        print(paste("x", missing(x)))
-        print(paste("y", missing(y)))
-        print(paste("isnullx", is.null(x)))
-        print(paste("isnully", is.null(y)))
-        
-        print(paste("nargs() = ", nargs()))
-        
-        # if parameters are missing
-        if (is.null(value) && missing(x) && missing(y)) {
-          print("1st if")
-          return(private$table_df[, ])
+                             Nargs, missingx, missingy) {
+
+        if(Nargs == 1 && missingx && missingy){
+          return(private$table_df[])
+          #print("m[]")
         }
-        if (is.null(value) && !missing(x) && missing(y)) {
-          print("2nd if")
+        if(Nargs == 1 && !missingx && missingy){
           return(private$table_df[x])
+          #print("m[1]")
         }
-        if (is.null(value) && missing(x) && !missing(y)) {
-          print("3d if")
+        if(Nargs == 2 && !missingx && missingy){
+          return(private$table_df[x, ])
+          # print("m[1, ]")
+        }
+        if(Nargs == 2 && missingx && !missingy){
           return(private$table_df[, y])
+          #print("m[, 1]")
         }
-        if (is.null(value) && !missing(x) && !missing(y)) {
-          print("4th if")
-          if (is.null(x) &&
-              !is.null(y))
-            return(private$table_df[, y]) # Use y if specified but x null.
-          if (is.null(y) &&
-              !is.null(x))
-            return(private$table_df[x,]) # Use x if y is null.
-          if (is.null(x) && is.null(y))
-            return(private$table_df[,])
-          return(private$table_df[x, y]) # Else use both x y, as specified.
+        if(Nargs == 2 && !missingx && !missingy){
+          return(private$table_df[x, y])
+          #print("m[1, 1]")
         }
+        if(Nargs == 2 && missingx && missingy){
+          return(private$table_df[, ])
+          #print("m[, ]")
+        }
+        stop("Subsetting operator failed to find correct syntax.")
+
       },
       
       #~~~~~~~~~~~~~~~~~~~~~~~~
@@ -346,7 +338,8 @@ rm(`[.SmallTableObject`)
 '[.SmallTableObject' <- function(o,
                                  x,
                                  y) {
-  tmp <- o$subset_read(x = x, y = y, value = NULL)
+  
+  tmp <- o$subset_read(x = x, y = y, Nargs = nargs() - 1, missingx = missing(x), missingy = missing(y))
   return(tmp)
 }
 
