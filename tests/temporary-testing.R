@@ -2,39 +2,105 @@
 
 tmp <- list(a=1)
 class(tmp) <- "myclass"
-'[.myclass' <- function(o, x, y) {
-  print(names(sys.call()))
-  print(nargs() - 1)
-  print(missing(x))
-  print(missing(y))
+'[<-.myclass' <-
+  function(o,
+           x,
+           y,
+           value) {
+    Nargs <- nargs() - 1
+    missingx <- missing(x)
+    missingy <- missing(y)
+    missingv <- missing(value)
+    print(paste("Nargs", Nargs))
+    print(paste("missingx", missingx))
+    print(paste("missingy", missingy))
+    print(paste("missingv", missingv))
+    
+    # tmp <- o$subset_write(x = x, y = y, value = value, Nargs = nargs() - 1, missingx = missing(x), 
+    #                       missingy = missing(y), missingvalue = missing(value))
+    # return(tmp)
+    return("done")
+  }
+tmp[1] <- 1
+
+
+
+
+'[<-.myclass' <- function(o, x, y, value) {
+  #print(names(sys.call()))
+  Nargs <- nargs() - 1
+  missingx <- !missing(x)
+  missingy <- !missing(y)
+  missingv <- !missing(value)
+  
+  print(paste("Nargs", Nargs))
+  print(paste("missingx", missingx))
+  print(paste("missingy", missingy))
+  print(paste("missingv", missingv))
+  
+  # if(Nargs == 1 && !gx && !gy){
+  #   print("m[]")
+  # }
+  # if(Nargs == 1 && gx && !gy){
+  #   print("m[1]")
+  # }
+  # if(Nargs == 2 && gx && !gy){
+  #   print("m[1, ]")
+  # }
+  # if(Nargs == 2 && !gx && gy){
+  #   print("m[, 1]")
+  # }
+  # if(Nargs == 2 && gx && gy){
+  #   print("m[1, 1]")
+  # }
+  # if(Nargs == 2 && !gx && !gy){
+  #   print("m[, ]")
+  # }
+  
+  invisible("")
 }
-tmp[,]  # Check nargs and missing!!!!!!! Solution found.
-tmp[1]  
-tmp[1, ]  
 
 
-
+#//////////////////////////////////////
+# Assignment with subsett
 source("./src/objects.R")
-rm(`[.SmallTableObject`)
-'[.SmallTableObject' <- function(o, x, y) {
-  print("overloaded:")
-  print(nargs() - 1)
-  print(missing(x))
-  print(missing(y))
-  print("end overloaded:")
-  return()  
-  print("call")
-
-  tmp <- o$subset_read(x, y)
-  print("end call")
-  return(tmp)
-}
+source("./tests/smalltableobject_test.R")
 sto2 <- NULL
 sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
+class(sto2)
+
+sto2[] <- 1 #nargs:1 missing:TTF
+sto2[1] <- c(1,1) #nargs:1 missing:FTF
+sto2[1 ] <- c(1,1)#nargs:1 missing:FTF
+sto2[1, ] <- 1 #nargs:2 missing:FTF
+sto2[, 1] <- 1 #nargs:2 missing:TFF
+sto2[1, 1] <- 1 #nargs:2 missing:FFF
+
+sto2[1, ] <- NA
+tmp <- cars
+tmp[1 ] <- NA
+
+#//////////////////////////////////////
+# Subsetting
+source("./src/objects.R")
+sto2 <- NULL
+sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
+sto2[]
+sto2[,"z"]
+cars[, "z"]
+sto2[1]
+sto2[1, ]
+sto2[, 1]
+sto2[1, 1]
+
 sto2[2, ]
 sto2[1]
 sto2[, 1]
 sto2[NULL]
+cars[NULL]
+sto2[NA]
+cars[NA]
+
 
 
 
