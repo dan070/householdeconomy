@@ -64,10 +64,32 @@ tmp[1] <- 1
 #//////////////////////////////////////
 # Assignment with subsett
 source("./src/objects.R")
-source("./tests/smalltableobject_test.R")
+#source("./tests/smalltableobject_test.R")
+
+# Create data and an object.
+tf <- tempfile()
+create_test_data(conn = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf))
 sto2 <- NULL
 sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
-class(sto2)
+
+
+# Test: Pin one unique row. Update 1 cell. Compare to data base.  
+tmprow <- sample(nrow(sto2[]), 1)
+tmpdata <- sto2[tmprow, ]
+sto2[tmprow, 1] <- (tmpdata[, 1] - 1)
+
+conn <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf)
+res <- DBI::dbGetQuery(conn, 
+glue("SELECT a FROM 
+test1 
+WHERE b = {tmpdata$b}
+AND c = '{tmpdata$c}'
+                "))
+DBI::dbDisconnect(conn)
+
+res
+sto2[tmprow, 1]
+(tmpdata[, 1] - 1)
 
 sto2[] <- 1 #nargs:1 missing:TTF
 sto2[1] <- c(1,1) #nargs:1 missing:FTF
@@ -75,10 +97,6 @@ sto2[1 ] <- c(1,1)#nargs:1 missing:FTF
 sto2[1, ] <- 1 #nargs:2 missing:FTF
 sto2[, 1] <- 1 #nargs:2 missing:TFF
 sto2[1, 1] <- 1 #nargs:2 missing:FFF
-
-sto2[1, ] <- NA
-tmp <- cars
-tmp[1 ] <- NA
 
 #//////////////////////////////////////
 # Subsetting
@@ -102,5 +120,13 @@ sto2[NA]
 cars[NA]
 
 
-
-
+####
+f1 <- function(z){
+  asscol <- checkmate::makeAssertCollection() 
+  checkmate::assert_true(F, add = asscol)
+  checkmate::assert_true(F, add = asscol)
+  checkmate::assert_true(F, add = asscol)
+  checkmate::assert_true(z, add = asscol)
+  #asscol$getMessages()
+}
+f1(z = T)
