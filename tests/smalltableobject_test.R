@@ -5,10 +5,105 @@
 source("./src/objects.R")
 library(checkmate)
 library(crayon)
+library(glue)
 tests_assert <- checkmate::makeAssertCollection()
 
+
+# /////////////////////////////////////////////////////////////////////
+# Func: Create data for specific database, given a connection.
+# /////////////////////////////////////////////////////////////////////
+create_test_data <- function(conn, dbtype = "sqlite"){
+  checkmate::assert_choice(dbtype, choices = c("sqlite"))
+  checkmate::assert_true(DBI::dbIsValid(conn))
+  
+  if(dbtype == "sqlite"){
+    
+    # Create connection object to sqlite.
+    con_temp <- conn
+    #DBI::dbListTables(con_temp)
+    
+    # Create a table with all pertinent datatypes
+    #   -Date/time specific class is not an option for sqlite.
+    #   -SQLIte has 4 "storage classes" and 1 column can mix different types(!).
+    #   -More on data types : http://www.sqlitetutorial.net/sqlite-data-types/
+    DBI::dbExecute(con_temp, "CREATE TABLE test1 (a int , b real , c text , d blob )")
+    
+    # Insert 100 random rows for each column.
+    #   -No missing values.
+    #   -Ensure both positive and negative numerics.
+    #   -Ensure empty strings, but not NULLs/NA. Ensure åäö nordic characters in strings.
+    #   -Ensure dates in the past, and the future. (not applicable here)
+    DBI::dbExecute(con_temp, "INSERT INTO test1
+                 VALUES(  
+                 9223372036854775807, 
+                 9.0, 
+                 'abcdefghijklmnopqrstuvxyzåäö 1234567890?!', 
+                 x'050015a0' ), 
+                  ( 
+                 -9223372036854775805, 
+                 -9.9, 
+                 '', 
+                 x'0419ffff' )
+                 ")
+    # Set seed & table size.
+    size_n <- 100
+    set.seed(seed = 20190427, kind = "default")
+    
+    # Generate random numbers to df, and ...
+    randomrows <- data.frame(
+      a = sample.int(n = 999999999999, size = size_n) * sample(
+        x = c(-1, 1),
+        size = size_n,
+        replace = T
+      ),
+      b = runif(
+        n = size_n,
+        min = -99999999,
+        max = 99999999
+      ),
+      c = replicate(n = size_n, expr = paste("'", paste(
+        sample(
+          x = c(LETTERS, letters),
+          size = 10,
+          replace = T
+        ), collapse = ""
+      ), "'", sep = "")  ),
+      d = replicate(n = size_n, expr = paste(
+        "x'", paste(sample(
+          x = c(0:9, letters[1:6]),
+          size = 10,
+          replace = T
+        ), collapse = ""), "'", sep = ""
+      ))
+    )
+    
+    # ... prep for SQL insert...
+    inserts <-
+      paste(apply(
+        X = randomrows,
+        MARGIN = 1,
+        FUN = function(x)
+          paste("(", paste(x, collapse = ","), ")")
+      ), collapse = ",")
+    
+    # ... and insert into data base table.
+    DBI::dbExecute(con_temp, paste("INSERT INTO test1
+                                 VALUES", inserts))
+    # Disconnect db connection.
+    DBI::dbDisconnect(con_temp)
+    
+    
+    
+  }
+  
+  return(T)
+}
+
+
+
+
 # ~~~~~~
-# Using sto with sqlite...
+# Database backend : SQLITE
 # ~~~~~~
 
 # /////////////////////////////////////////////////////////////////////
@@ -89,80 +184,8 @@ for(db in tempdbpath){
   # Create table with test data
   #
   # /////////////////////////////////////////////////////////////////////
+  create_test_data(conn = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = db))
   
-  # Create connection object to sqlite.
-  con_temp <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = db)
-  #DBI::dbListTables(con_temp)
-
-  # Create a table with all pertinent datatypes
-  #   -Date/time specific class is not an option for sqlite.
-  #   -SQLIte has 4 "storage classes" and 1 column can mix different types(!).
-  #   -More on data types : http://www.sqlitetutorial.net/sqlite-data-types/
-  DBI::dbExecute(con_temp, "CREATE TABLE test1 (a int , b real , c text , d blob )")
-
-  # Insert 100 random rows for each column.
-  #   -No missing values.
-  #   -Ensure both positive and negative numerics.
-  #   -Ensure empty strings, but not NULLs/NA. Ensure åäö nordic characters in strings.
-  #   -Ensure dates in the past, and the future. (not applicable here)
-  DBI::dbExecute(con_temp, "INSERT INTO test1
-                 VALUES(  
-                 9223372036854775807, 
-                 9.0, 
-                 'abcdefghijklmnopqrstuvxyzåäö 1234567890?!', 
-                 x'050015a0' ), 
-                  ( 
-                 -9223372036854775805, 
-                 -9.9, 
-                 '', 
-                 x'0419ffff' )
-                 ")
-  # Set seed & table size.
-  size_n <- 100
-  set.seed(seed = 20190427, kind = "default")
-  
-  # Generate random numbers to df, and ...
-  randomrows <- data.frame(
-    a = sample.int(n = 999999999999, size = size_n) * sample(
-      x = c(-1, 1),
-      size = size_n,
-      replace = T
-    ),
-    b = runif(
-      n = size_n,
-      min = -99999999,
-      max = 99999999
-    ),
-    c = replicate(n = size_n, expr = paste("'", paste(
-      sample(
-        x = c(LETTERS, letters),
-        size = 10,
-        replace = T
-      ), collapse = ""
-    ), "'", sep = "")  ),
-    d = replicate(n = size_n, expr = paste(
-      "x'", paste(sample(
-        x = c(0:9, letters[1:6]),
-        size = 10,
-        replace = T
-      ), collapse = ""), "'", sep = ""
-    ))
-  )
-  
-  # ... prep for SQL insert...
-  inserts <-
-    paste(apply(
-      X = randomrows,
-      MARGIN = 1,
-      FUN = function(x)
-        paste("(", paste(x, collapse = ","), ")")
-    ), collapse = ",")
-  
-  # ... and insert into data base table.
-  DBI::dbExecute(con_temp, paste("INSERT INTO test1
-                                 VALUES", inserts))
-  # Disconnect db connection.
-  DBI::dbDisconnect(con_temp)
 
   
   
@@ -420,13 +443,14 @@ for(db in tempdbpath){
   # Change 1 value to NA in each column, and write back for each change.
   # Set each column to NA, one at a time, and write back.
   # /////////////////////////////////////////////////////////////////////
+  
+  
 
   # Test: Pin one unique row. Update 1 cell. Compare to data base.  
+  tmprow <- sample(nrow(sto2[]), 1)
+  tmpdata <- sto2[tmprow, ]
+  sto2[tmprow, 1] <- (tmpdata[, 1] - 1)
   
-  #tmprow <- sample(nrow(sto2[]), 1)
-  #sto2[tmprow, ]
-  #TODO: HANDLE sto2[1] should return a column, not a row!  
-  #nrow(cars)
   
   # Test: Pin 10 unique rows. Update 1 cell. Compare to data base.  
   # Test: Pin 10 unique rows. Update all cells to NA. Compare to data base.
