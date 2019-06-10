@@ -136,8 +136,10 @@ SmallTableObject <-
       #~~~~~~~~~~~~~~~~~~~~~~~~
       print = function(...) {
         cat("SmallTableObject\n")
-        cat(paste("db type : ", private$dbtype, "\n"))
+        cat(paste("db type    : ", private$dbtype, "\n"))
         cat(paste("table name : ", private$tablename, "\n"))
+        cat(paste("nrow       : ", nrow(private$table_df), "\n"))
+        
         invisible(self)
       },
       
