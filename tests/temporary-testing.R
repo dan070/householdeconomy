@@ -68,9 +68,9 @@ source("./src/objects.R")
 
 # Create data and an object.
 tf <- tempfile()
-create_test_data(conn = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf))
+create_test_data(conn = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), n = 1)
 sto2 <- NULL
-sto2 <- SmallTableObject$new(dbtype = "sqlite", host = db, tablename = "test1")
+sto2 <- SmallTableObject$new(dbtype = "sqlite", host = tf, tablename = "test1")
 
 
 # Test: Pin one unique row. Update 1 cell. Compare to data base.  
@@ -78,18 +78,16 @@ tmprow <- sample(nrow(sto2[]), 1)
 tmpdata <- sto2[tmprow, ]
 sto2[tmprow, 1] <- (tmpdata[, 1] - 1)
 
-conn <- DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf)
-res <- DBI::dbGetQuery(conn, 
-glue("SELECT a FROM 
-test1 
-WHERE b = {tmpdata$b}
-AND c = '{tmpdata$c}'
-                "))
-DBI::dbDisconnect(conn)
+# Get Database value.
+res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), 
+                         where = list(b = tmpdata$b, c = tmpdata$c  ))
 
-res
-sto2[tmprow, 1]
-(tmpdata[, 1] - 1)
+# Assert values were changed.
+v1 <- paste(res$a)
+v2 <- paste(sto2[tmprow, 1])
+v3 <- paste((tmpdata[, 1] - 1))
+checkmate::assert_true(v1 == v2 && v2 == v3)
+
 
 sto2[] <- 1 #nargs:1 missing:TTF
 sto2[1] <- c(1,1) #nargs:1 missing:FTF
