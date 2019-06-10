@@ -59,7 +59,10 @@ SmallTableObject <-
       # Handles assignment & subsetting operations.
       #~~~~~~~~~~~~~~~~~~~~~~~~
       
-      subset_write = function(x, y, value) {
+      subset_write = function(x, y, value, 
+                 Nargs, missingx, missingy, missingvalue){ 
+        return(self)
+        
         
         print("Subset_write:")
         # If parameter "value" is not null, requires updating the underlying data.
@@ -338,7 +341,6 @@ rm(`[.SmallTableObject`)
 '[.SmallTableObject' <- function(o,
                                  x,
                                  y) {
-  
   tmp <- o$subset_read(x = x, y = y, Nargs = nargs() - 1, missingx = missing(x), missingy = missing(y))
   return(tmp)
 }
@@ -347,10 +349,19 @@ rm(`[.SmallTableObject`)
 
 rm(`[<-.SmallTableObject`)
 '[<-.SmallTableObject' <-
-  function(o = NULL,
-           x = NULL,
-           y = NULL,
-           value = NULL) {
-    tmp <- o$subset_write(x = x, y = y, value = value)
+  function(o,
+           x,
+           y,
+           value) {
+    Nargs <- nargs() - 2
+    missingx <- missing(x)
+    missingy <- missing(y)
+    missingv <- missing(value)
+    print(paste("Nargs", Nargs))
+    print(paste("missingx", missingx))
+    print(paste("missingy", missingy))
+    print(paste("missingv", missingv))
+    tmp <- o$subset_write(x = x, y = y, value = value, Nargs = nargs() - 1, missingx = missing(x), 
+                          missingy = missing(y), missingvalue = missing(value))
     return(tmp)
   }
