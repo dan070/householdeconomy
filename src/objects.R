@@ -3,6 +3,9 @@
 
 
 
+
+
+
 # Objects used to simplify handling of data to and fro the database.
 
 
@@ -23,33 +26,32 @@ SmallTableObject <-
       subset_read = function(x,
                              y,
                              Nargs, missingx, missingy) {
-
-        if(Nargs == 1 && missingx && missingy){
+        if (Nargs == 1 && missingx && missingy) {
           return(private$table_df[])
           #print("m[]")
         }
-        if(Nargs == 1 && !missingx && missingy){
+        if (Nargs == 1 && !missingx && missingy) {
           return(private$table_df[x])
           #print("m[1]")
         }
-        if(Nargs == 2 && !missingx && missingy){
-          return(private$table_df[x, ])
+        if (Nargs == 2 && !missingx && missingy) {
+          return(private$table_df[x,])
           # print("m[1, ]")
         }
-        if(Nargs == 2 && missingx && !missingy){
+        if (Nargs == 2 && missingx && !missingy) {
           return(private$table_df[, y])
           #print("m[, 1]")
         }
-        if(Nargs == 2 && !missingx && !missingy){
+        if (Nargs == 2 && !missingx && !missingy) {
           return(private$table_df[x, y])
           #print("m[1, 1]")
         }
-        if(Nargs == 2 && missingx && missingy){
-          return(private$table_df[, ])
+        if (Nargs == 2 && missingx && missingy) {
+          return(private$table_df[,])
           #print("m[, ]")
         }
         stop("Subsetting operator failed to find correct syntax.")
-
+        
       },
       
       #~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,63 +60,74 @@ SmallTableObject <-
       # Used in tandem with S3-overloaded operator.
       # Handles assignment & subsetting operations.
       #~~~~~~~~~~~~~~~~~~~~~~~~
-      
-      subset_write = function(x, y, value, 
-                 Nargs, missingx, missingy, missingvalue){ 
+      subset_write = function(x,
+                              y,
+                              value,
+                              Nargs,
+                              missingx,
+                              missingy,
+                              missingvalue) {
+        #return(self)
+        # Check that value has been input.
+        print(paste("value=", value))
+
+        print(paste("Nargs", Nargs))
+        print(paste("missingx", missingx))
+        print(paste("missingy", missingy))
+        print(paste("missingvalue", missingvalue))
+        
+        
+        if (missingvalue)
+          stop("Value for assignment [<-] not supplied!")
+        
+        # Make copy and assign to that firstly to flush out errors implicitly using Rs own error checking.
+        tmp_table_df <-
+          private$table_df # Make a copy of the table df.
+        
+        # Assign and let R's errors fire, if any.
+        if (Nargs == 1 && missingx && missingy) {
+          tmp_table_df[] <- value
+          print("sto2[] <- 1 #nargs:1 missing:TT")
+        }
+        if (Nargs == 1 && !missingx && missingy) {
+          tmp_table_df[x] <- value
+          print("#sto2[1] <- c(1,1) #nargs:1 missing:FT")
+        }
+        
+        if (Nargs == 2 && !missingx && missingy) {
+          tmp_table_df[x,] <- value
+          print("#sto2[1, ] <- 1 #nargs:2 missing:FT")
+        }
+        if (Nargs == 2 && missingx && !missingy) {
+          tmp_table_df[, y] <- value
+          print("#sto2[, 1] <- 1 #nargs:2 missing:TF")
+        }
+        if (Nargs == 2 && !missingx && !missingy) {
+          tmp_table_df[x, y] <- value
+          print("#sto2[1, 1] <- 1 #nargs:2 missing:FF")
+        }
+        
+        print("here")
+        # Assert: classes on temp data frame have not changed.
+        tmp_class_value = sapply(X = tmp_table_df,
+                                 FUN = class)
+        print(tmp_class_value)
+        tmp_class_df = sapply(X = private$table_df,
+                              FUN = class)
+        print(tmp_class_df)
+        
+        checkmate::assert_set_equal(x = tmp_class_df,
+                                    y = tmp_class_value,
+                                    ordered = T)
+        
+        print("Assert done.")
+        # Save local copy to data base.
+        # Errors will be propagated through here.
+        private$save_table_to_database(tmp_table_df)
+        
+        # Return
         return(self)
         
-        
-        print("Subset_write:")
-        # If parameter "value" is not null, requires updating the underlying data.
-        if (!is.null(value)) {
-          # Make copy and assign to that firstly to flush out errors implicitly using Rs own error checking.
-          tmp_table_df <-
-            private$table_df # Make a copy of the table df.
-          
-          # Row and column not specificed.
-          if (is.null(x) && is.null(y)) {
-            print("5th if statement.")
-            tmp_table_df[x, y] <-
-              value # Assign. x and y null so [,] <- whole.data.frame
-          }
-          
-          # Row subset, column subset.
-          if (!is.null(x) && !is.null(y)) {
-            print("6th if statement.")
-            tmp_table_df[x, y] <- value # Assign.
-          }
-          
-          # Row empty, column subset.
-          if (is.null(x) && !is.null(y)) {
-            print("7th if statement.")
-            tmp_table_df[, y] <- value # Assign.
-          }
-          
-          # Row subset, column empty.
-          if (!is.null(x) && is.null(y)) {
-            print("8th if statement.")
-            tmp_table_df[x,] <- value # Assign.
-          }
-          
-          # Assert: classes on temp data frame have not changed.
-          tmp_class_value = lapply(X = tmp_table_df,
-                                   FUN = class)
-          tmp_class_df = lapply(X = private$table_df[, y],
-                                FUN = class)
-          checkmate::assert_set_equal(x = tmp_class_df,
-                                      y = tmp_class_value,
-                                      ordered = T)
-          
-          
-          # Update the private data table.
-          private$table_df[x, y] <- tmp_table_df
-          
-          # Save to data base.
-          private$save_table_to_database()
-          
-          # Return
-          return(self)
-        }
       },
       
       
@@ -261,9 +274,8 @@ SmallTableObject <-
       
       #~~~~~~~~~~~~~~~~~~~~~~~~
       # ~ Private func: hash_data_frame
+      # Calc MD5 for each (sorted) column separately. Then MD5 those to 1 value.
       #~~~~~~~~~~~~~~~~~~~~~~~~
-      
-      # Func : hash data frame to compare 2 data frames for similarity.
       hash_data_frame = function(df_to_hash = NA) {
         # Define local sort function that handles classes not implementing sort.
         sorts <- function(x) {
@@ -288,42 +300,62 @@ SmallTableObject <-
       }#func:hash_data_frame ends here
       ,
       #~~~~~~~~~~~~~~~~~~~~~~~~
-      # ~ Private func: save_table
+      # ~ Private func: save_table_to_database
+      # Write local data frame to data base table.
       #~~~~~~~~~~~~~~~~~~~~~~~~
-      # Func : save the local data frame to our data base.
-      save_table_to_database = function() {
+      save_table_to_database = function(df_to_save) {
         if (private$dbtype == "sqlite") {
-          # ~~ Check data base connection working ~~
+          print("save_table_to_database...")
+          # Check data base connection working
           if (!DBI::dbIsValid(private$connection)) {
             private$connection <-
               RSQLite::dbConnect(drv = RSQLite::SQLite(), dbname = private$host)
           }
-          checkmate::assert_true(DBI::dbIsValid(private$connection))
+          checkmate::assert_true(DBI::dbIsValid(private$connection), .var.name = "DB connection.")
+          print("Check db connection.")
           
-          # ~~ Check underlying table integrity ~~
-          # (ensure no data race on local table versus target table).
-          # ie... Download table. Hash it. Compare hashes. Else error.
+          
+          # Ensure no data race on local table versus target table
+          # ie. download table, compare hashes, else error.
           tmp_data_table <-
-            DBI::dbReadTable(conn = private$connection, name = private$tablename)
+            DBI::dbReadTable(conn = private$connection, name = private$tablename) # Get DB-table.
           tmp_hash <-
-            private$hash_data_frame(df_to_hash = tmp_data_table)
-          checkmate::assert_true(private$table_hash, tmp_hash)
+            private$hash_data_frame(df_to_hash = tmp_data_table) # Hash DB-table.
+          print(private$table_hash)
+          print(tmp_hash)
+          checkmate::assert_true(x = private$table_hash == tmp_hash, .var.name = "Hash compare.") # Compare DB-table to local MD5.
+          print("Check hashes.")
           
           # ~~ Upsert the table ~~
           # Truncate the data base table.
-          DBI::dbGetQuery(
+          DBI::dbSendQuery(
             conn = private$connection,
             statement = paste("DELETE FROM ", private$tablename)
           )
+          print("Delete done.")
+          
+          #print(df_to_save)
           # Upsert whole private table to data base table.
           DBI::dbWriteTable(
             conn = private$connection,
             name = private$tablename,
-            value = private$table_df
+            value = df_to_save, 
+            overwrite = T
           )
+          print("Upsert entire table done.")
+          
+          # Set the private table to the sent in table.
+          # TODO: maybe read from data base again, to ensure.
+          private$table_df <- df_to_save
+          print("Replace local table.")
+          
           # Update private hash (of new table).
           private$table_hash <-
             private$hash_data_frame(private$table_df)
+          print("Updated hash ")
+          
+          # Release connection 
+          DBI::dbDisconnect(private$connection)
         } # if private$dbtype == "sqlite" ends here.
       }# func:save_table_to_database ends here.
     )# Private fields ends here
@@ -341,7 +373,14 @@ rm(`[.SmallTableObject`)
 '[.SmallTableObject' <- function(o,
                                  x,
                                  y) {
-  tmp <- o$subset_read(x = x, y = y, Nargs = nargs() - 1, missingx = missing(x), missingy = missing(y))
+  tmp <-
+    o$subset_read(
+      x = x,
+      y = y,
+      Nargs = nargs() - 1,
+      missingx = missing(x),
+      missingy = missing(y)
+    )
   return(tmp)
 }
 
@@ -357,11 +396,15 @@ rm(`[<-.SmallTableObject`)
     missingx <- missing(x)
     missingy <- missing(y)
     missingv <- missing(value)
-    print(paste("Nargs", Nargs))
-    print(paste("missingx", missingx))
-    print(paste("missingy", missingy))
-    print(paste("missingv", missingv))
-    tmp <- o$subset_write(x = x, y = y, value = value, Nargs = nargs() - 1, missingx = missing(x), 
-                          missingy = missing(y), missingvalue = missing(value))
+    tmp <-
+      o$subset_write(
+        x = x,
+        y = y,
+        value = value,
+        Nargs = nargs() - 2,
+        missingx = missing(x),
+        missingy = missing(y),
+        missingvalue = missing(value)
+      )
     return(tmp)
   }
