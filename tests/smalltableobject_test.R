@@ -12,7 +12,7 @@ tests_assert <- checkmate::makeAssertCollection()
 # /////////////////////////////////////////////////////////////////////
 # Func: Create data for specific database, given a connection.
 # /////////////////////////////////////////////////////////////////////
-create_test_data <- function(conn, dbtype = "sqlite"){
+create_test_data <- function(conn, dbtype = "sqlite", n = 100){
   checkmate::assert_choice(dbtype, choices = c("sqlite"))
   checkmate::assert_true(DBI::dbIsValid(conn))
   
@@ -46,7 +46,7 @@ create_test_data <- function(conn, dbtype = "sqlite"){
                  x'0419ffff' )
                  ")
     # Set seed & table size.
-    size_n <- 100
+    size_n <- n
     set.seed(seed = 20190427, kind = "default")
     
     # Generate random numbers to df, and ...
@@ -99,6 +99,27 @@ create_test_data <- function(conn, dbtype = "sqlite"){
   return(T)
 }
 
+
+# /////////////////////////////////////////////////////////////////////
+# Func: Get values from database simpler
+# /////////////////////////////////////////////////////////////////////
+
+get_values_from_database <- function(con, where = list()){
+  out <- where %>% 
+    purrr::imap(.f = function(x, y){
+      if(class(x) == "character"){
+        paste(y, "IN", paste("(", paste(paste("'", x, "'", sep = ""), collapse = ","), ")"))
+      } else {
+        paste(y, "IN", paste("(", paste(x, collapse = ","), ")") )
+      }
+    }) %>% purrr::reduce(.f = function(x, y){paste(x, "AND", y)})
+  print(out)
+  #return()
+  stmnt <- glue("SELECT * FROM test1 WHERE {out}")
+  res <- DBI::dbGetQuery(conn = con, statement = stmnt)
+  DBI::dbDisconnect(con) # Kill connection.
+  return(res)
+}
 
 
 
@@ -444,12 +465,36 @@ for(db in tempdbpath){
   # Set each column to NA, one at a time, and write back.
   # /////////////////////////////////////////////////////////////////////
   
+  tryCatch({
+    # Create data and an object.
+    tf <- tempfile()
+    create_test_data(conn = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), n = 100)
+    sto2 <- NULL
+    sto2 <- SmallTableObject$new(dbtype = "sqlite", host = tf, tablename = "test1")
+    
+  }, error = function(e){
+    
+  })#end trycatch
   
-
+  
+  
   # Test: Pin one unique row. Update 1 cell. Compare to data base.  
+  test_name <-
+    "Assign 1 cell ie sto[1 , 1] <- 1"
+  tictoc::tic(test_name)
   tmprow <- sample(nrow(sto2[]), 1)
   tmpdata <- sto2[tmprow, ]
   sto2[tmprow, 1] <- (tmpdata[, 1] - 1)
+  # Get Database value.
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), 
+                                  where = list(b = tmpdata$b, c = tmpdata$c  ))
+  # Assert values were changed.
+  v1 <- paste(res$a)
+  v2 <- paste(sto2[tmprow, 1])
+  v3 <- paste((tmpdata[, 1] - 1))
+  if(v1 == v2 && v2 == v3){
+    
+  }
   
   
   # Test: Pin 10 unique rows. Update 1 cell. Compare to data base.  
