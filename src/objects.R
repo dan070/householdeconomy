@@ -17,14 +17,14 @@ SmallTableObject <-
     # ~ Active ~
     #~~~~~~~~~~~~~~~~~~~~~~~~
     active = list(
-      host = function(value){
+      get_host = function(value){
         if(missing(value)){
           return(private$host)
         } else {
           stop("Cannot assign to field: host")
         }
       },
-      dbtype = function(value){
+      get_dbtype = function(value){
         if(missing(value)){
           return(private$dbtype)
         } else {
@@ -32,14 +32,14 @@ SmallTableObject <-
         }
       },
 
-      db = function(value){
+      get_db = function(value){
         if(missing(value)){
           return(private$db)
         } else {
           stop("Cannot assign to field: db")
         }
       },
-      tablename = function(value){
+      get_tablename = function(value){
         if(missing(value)){
           return(private$tablename)
         } else {
