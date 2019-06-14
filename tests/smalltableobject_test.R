@@ -12,7 +12,7 @@ tests_assert <- checkmate::makeAssertCollection()
 # /////////////////////////////////////////////////////////////////////
 # Func: Create data for specific database, given a connection.
 # /////////////////////////////////////////////////////////////////////
-create_test_data <- function(conn, dbtype = "sqlite", n = 100){
+create_test_data <- function(conn, dbtype = "sqlite", n = 100, seed = 20190427){
   checkmate::assert_choice(dbtype, choices = c("sqlite"))
   checkmate::assert_true(DBI::dbIsValid(conn))
   
@@ -47,7 +47,7 @@ create_test_data <- function(conn, dbtype = "sqlite", n = 100){
                  ")
     # Set seed & table size.
     size_n <- n
-    set.seed(seed = 20190427, kind = "default")
+    set.seed(seed = seed, kind = "default")
     
     # Generate random numbers to df, and ...
     randomrows <- data.frame(
@@ -105,17 +105,23 @@ create_test_data <- function(conn, dbtype = "sqlite", n = 100){
 # /////////////////////////////////////////////////////////////////////
 
 get_values_from_database <- function(con, where = list()){
-  out <- where %>% 
-    purrr::imap(.f = function(x, y){
-      if(class(x) == "character"){
-        paste(y, "IN", paste("(", paste(paste("'", x, "'", sep = ""), collapse = ","), ")"))
-      } else {
-        paste(y, "IN", paste("(", paste(x, collapse = ","), ")") )
-      }
-    }) %>% purrr::reduce(.f = function(x, y){paste(x, "AND", y)})
-  print(out)
+  
+  if(length(where) == 0) {out <- ""} else {
+    out <- where %>% 
+      purrr::imap(.f = function(x, y){
+        if(class(x) == "character"){
+          paste(y, "IN", paste("(", paste(paste("'", x, "'", sep = ""), collapse = ","), ")"))
+        } else {
+          paste(y, "IN", paste("(", paste(x, collapse = ","), ")") )
+        }
+      }) %>% purrr::reduce(.f = function(x, y){paste(x, "AND", y)})
+    out <- " WHERE " %+% out
+  }
+  
+  
   #return()
-  stmnt <- glue("SELECT * FROM test1 WHERE {out}")
+  stmnt <- glue("SELECT * FROM test1 {out}")
+  print(stmnt)
   res <- DBI::dbGetQuery(conn = con, statement = stmnt)
   DBI::dbDisconnect(con) # Kill connection.
   return(res)
@@ -123,12 +129,30 @@ get_values_from_database <- function(con, where = list()){
 
 
 
+# /////////////////////////////////////////////////////////////////////
+# Func: Give me a quick random data STO-object
+# /////////////////////////////////////////////////////////////////////
+
+get_sto <- function(n = 100, seed = 20202020){
+  tryCatch({
+    # Create data and an object.
+    tf <- tempfile()
+    create_test_data(conn = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), n = n, seed = seed)
+    sto2 <- NULL
+    sto2 <- SmallTableObject$new(dbtype = "sqlite", host = tf, tablename = "test1")
+    return(sto2)    
+  }, error = function(e){
+    stop("Couldnt create new object.")
+  })#end trycatch
+}  
+
+
 # ~~~~~~
 # Database backend : SQLITE
 # ~~~~~~
 
 # /////////////////////////////////////////////////////////////////////
-# Test: Try creating sto from a nonexistent database. Should generate error.
+# TEST: Try creating sto from a nonexistent database. Should generate error.
 # /////////////////////////////////////////////////////////////////////
 test_name <- "Create table object from nonexistent db should not be possible."
 test_status <- F
@@ -152,7 +176,7 @@ tests_assert$push(msg = paste(ifelse(test_status, green("PASS"), red("FAIL")), "
 
 
 # /////////////////////////////////////////////////////////////////////
-# Test: Try creating sto from a nonexistant table.
+# TEST: Try creating sto from a nonexistant table.
 # /////////////////////////////////////////////////////////////////////
 test_name <- "Create table object from nonexistent table, should not be possible."
 test_status <- F
@@ -182,13 +206,13 @@ tests_assert$push(msg = paste(ifelse(test_status, green("PASS"), red("FAIL")), "
 
 
 # /////////////////////////////////////////////////////////////////////
-# Test: Try writing to a db(file) with no permission to write to.
+# TEST: Try writing to a db(file) with no permission to write to.
 # /////////////////////////////////////////////////////////////////////
 # ## NOT IMPLEMENTED YET.
 
 
 # /////////////////////////////////////////////////////////////////////
-# Test: Try faulty "dbtype" arguments.
+# TEST: Try faulty "dbtype" arguments.
 # /////////////////////////////////////////////////////////////////////
 # ## NOT IMPLEMENTED YET.
 
@@ -227,7 +251,7 @@ for(db in tempdbpath){
   # 
 
   # /////////////////////////////////////////////////////////////////////
-  # Test: Check subset operator. 
+  # TEST: Check subset operator. 
   # ie. use [,] notation to read from sto.
   # /////////////////////////////////////////////////////////////////////
   test_name <- "Subsetting data using vectors length 1."
@@ -235,7 +259,7 @@ for(db in tempdbpath){
   tictoc::tic(test_name)
   tryCatch({
     
-    # Test: Use both col and row subsetting.
+    # TEST: Use both col and row subsetting.
     test_name <- "Subsetting with col and row together, ie: sto[19, 25]"
     tictoc::tic(test_name)
     tmp <- sto2[1, 1]
@@ -246,7 +270,7 @@ for(db in tempdbpath){
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
-    # Test: Use row subsetting.
+    # TEST: Use row subsetting.
     test_name <- "Subsetting with row, ie: sto[27, ]"
     tictoc::tic(test_name)
     tmp <- sto2[1, ]
@@ -259,7 +283,7 @@ for(db in tempdbpath){
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
-    # Test: Use col subsetting.
+    # TEST: Use col subsetting.
     test_name <- "Subsetting with col, ie: sto[, 3]"
     tictoc::tic(test_name)
     tmp <- sto2[, 1]
@@ -272,7 +296,7 @@ for(db in tempdbpath){
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
 
     
-    # Test: Use row subsetting with boolean vector.
+    # TEST: Use row subsetting with boolean vector.
     test_name <- "Subsetting using boolean vector ie: sto[c(T, T, F....), ]"
     tictoc::tic(test_name)
     temp_booleanvec <- sample(x = c(TRUE, FALSE), size = nrow(sto2[,]), replace = T)
@@ -287,7 +311,7 @@ for(db in tempdbpath){
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
 
     
-    # Test: Use col subsetting with column name.
+    # TEST: Use col subsetting with column name.
     test_name <- "Subsetting columns with name, ie: sto[ , 'a']"
     tictoc::tic(test_name)
     tmp <- sto2[, "a"]
@@ -302,7 +326,7 @@ for(db in tempdbpath){
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
-    # Test: out of range row subsetting.
+    # TEST: out of range row subsetting.
     test_name <- "Subsetting rows out of range, ie: sto[ 99999999, ]"
     tictoc::tic(test_name)
     tmp <- sto2[99999999, ]
@@ -316,7 +340,7 @@ for(db in tempdbpath){
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
-    # Test: negative row subsetting 
+    # TEST: negative row subsetting 
     test_name <- "Subsetting negative rows ie: sto[ -1, ]"
     tictoc::tic(test_name)
     tmp <- sto2[-c(1:100), ]
@@ -329,7 +353,7 @@ for(db in tempdbpath){
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
     
-    # Test: negative col subsetting 
+    # TEST: negative col subsetting 
     test_name <- "Subsetting negative cols ie: sto[ , -1]"
     tictoc::tic(test_name)
     tmp <- sto2[, -c(1:2)]
@@ -341,7 +365,7 @@ for(db in tempdbpath){
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
-    # Test: negative row and col subsetting
+    # TEST: negative row and col subsetting
     test_name <- "Subsetting negative rows and cols ie: sto[ -1, -1]"
     tictoc::tic(test_name)
     tmp <- sto2[-c(1:100), -c(1:2)]
@@ -353,7 +377,7 @@ for(db in tempdbpath){
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
-    # Test: select all the data
+    # TEST: select all the data
     test_name <- "Subsetting total data frame ie: sto[ , ]"
     tictoc::tic(test_name)
     tmp <- sto2[, ]
@@ -365,7 +389,7 @@ for(db in tempdbpath){
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
-    # Test: select something outside columns sto[, "nonexistingcolumn"]
+    # TEST: select something outside columns sto[, "nonexistingcolumn"]
     test_name <-
       "Subsetting outside data frame ie: sto[ , 'nonexistingcolumn']"
     tictoc::tic(test_name)
@@ -385,10 +409,10 @@ for(db in tempdbpath){
       }
     )
     
-    # Test: select  sto[boolean2dimensionalmatrix]
+    # TEST: select  sto[boolean2dimensionalmatrix]
     # TODO. Not implemented yet.
          
-    # Test: select  sto[-9999, ]
+    # TEST: select  sto[-9999, ]
     test_name <- "Subsetting outside data frame ie: sto[-99999999 , ]"
     tictoc::tic(test_name)
     checkmate::assert_set_equal(dim(sto2[-99999, ]), dim(sto2[]), add = tests_assert)
@@ -396,14 +420,14 @@ for(db in tempdbpath){
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs" ))
     
-    # Test: select sto[NULL, NULL]
+    # TEST: select sto[NULL, NULL]
     # NB: At the moment I'm unable to implement this behaviour!
     # NB: Supposed to give an empty data frame back. 
     # > cars[NULL, NULL]
     # data frame with 0 columns and 0 rows
     
     
-    # Test: select sto[NA, NA]
+    # TEST: select sto[NA, NA]
     test_name <-
       "Subsetting with NA ie: sto[NA , NA]"
     tictoc::tic(test_name)
@@ -435,10 +459,7 @@ for(db in tempdbpath){
     secs <- round(timespent$toc - timespent$tic, 4)
     tests_assert$push(msg = paste(green("PASS"), ":", test_name, ":", secs, " secs"))
     
-
-        
-    
-    # Test passed: TRUE.
+    # Test passed TRUE.
     test_name <- "Subsetting data tests all of them."
     test_status <- T
   }, error = function(e){
@@ -464,21 +485,11 @@ for(db in tempdbpath){
   # Change 1 value to NA in each column, and write back for each change.
   # Set each column to NA, one at a time, and write back.
   # /////////////////////////////////////////////////////////////////////
-  
-  tryCatch({
-    # Create data and an object.
-    tf <- tempfile()
-    create_test_data(conn = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), n = 100)
-    sto2 <- NULL
-    sto2 <- SmallTableObject$new(dbtype = "sqlite", host = tf, tablename = "test1")
-    
-  }, error = function(e){
-    
-  })#end trycatch
+
   
   
   
-  # Test: Pin one unique row. Update 1 cell. Compare to data base.  
+  # TEST: Pin one unique row. Update 1 cell. Compare to data base.  
   test_name <-
     "Assign 1 cell ie sto[1 , 1] <- 1"
   tictoc::tic(test_name)
@@ -492,16 +503,105 @@ for(db in tempdbpath){
   v1 <- paste(res$a)
   v2 <- paste(sto2[tmprow, 1])
   v3 <- paste((tmpdata[, 1] - 1))
-  if(v1 == v2 && v2 == v3){
-    
+  
+  if(checkmate::test_true(v1 == v2 && v2 == v3)){
+    tests_assert$push(green("PASS: ") %+% test_name )
+  } else {
+    tests_assert$push(red("FAIL: ") %+% test_name )
   }
+  tictoc::toc()
+  
+
+  # TEST: Pin 10 unique rows. Update 1 cell. Compare to data base.  
+  test_name <-
+    "Assign 10 cells ie sto[1:10 , 1] <- 1"
+  tictoc::tic(test_name)
+  tmprow <- sample(nrow(sto2[]), 10)
+  tmpdata <- sto2[tmprow, ]
+  sto2[tmprow, 1] <- (tmpdata[, 1] - 1)
+  # Get Database value.
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), 
+                                  where = list(b = tmpdata$b, c = tmpdata$c  ))
+
+  # Check results
+  v1 <- paste(res$a) %>% sort() %>% digest::digest()
+  v2 <- paste(sto2[tmprow, 1]) %>% sort() %>% digest::digest()
+  v3 <- paste((tmpdata[, 1] - 1)) %>% sort() %>% digest::digest()
+  if(checkmate::test_true(v1 == v2 && v2 == v3)){
+    tests_assert$push(green("PASS: ") %+% test_name)
+  } else {
+    tests_assert$push(red("FAIL: ") %+% test_name)
+  }
+  tictoc::toc()
   
   
-  # Test: Pin 10 unique rows. Update 1 cell. Compare to data base.  
-  # Test: Pin 10 unique rows. Update all cells to NA. Compare to data base.
-  # Test: Pin 1 unique rows. Delete it. Compare to data base.
-  # Test: Pin 10 unique rows. Delete them. Compare to data base.
-  # Test: Use boolean and named subsetting of columns. Update. Compare to data base.
+  
+  # TEST: Pin 10 unique rows. Update all cells to NA. Compare to data base.
+  test_name <-
+    "Assign 10 cells ie sto[1:10 , ] <- NA"
+  tictoc::tic(test_name)
+  tmprow <- sample(nrow(sto2[]), 10)
+  tmpdata <- sto2[tmprow, ]
+  sto2[tmprow, 1:3] <- NA
+  # Get Database value.
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), 
+                                  where = list())
+  
+  # Check results
+  v1 <- paste(res$a) %>% sort() %>% digest::digest()
+  v2 <- paste(sto2[, 1]) %>% sort() %>% digest::digest()
+  if(checkmate::test_true(v1 == v2)){
+    tests_assert$push(green("PASS: ") %+% test_name)
+  } else {
+    tests_assert$push(red("FAIL: ") %+% test_name)
+  }
+  tictoc::toc()
+  
+  
+  # TEST: Pin 10 unique rows. Delete them. Compare to data base.
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
+  test_name <-
+    "Delete 10 rows ie sto[1:10 , ] "
+  tictoc::tic(test_name)
+  tmprow <- sample(nrow(sto2[]), 10)
+  tmpdata <- sto2[-tmprow, ]
+  sto2[,] <- tmpdata
+  # Get Database value.
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), 
+                                  where = list())
+  
+  # Check results
+  v1 <- res %>% 
+    purrr::map(paste) %>% 
+    purrr::map(sort) %>% 
+    purrr::map(digest::digest) %>% 
+    purrr::reduce(c) %>% 
+    sort %>% 
+    paste(collapse = "") %>% 
+    digest::digest(.)
+    
+  v2 <- sto2[] %>% 
+    purrr::map(paste) %>% 
+    purrr::map(sort) %>% 
+    purrr::map(digest::digest) %>% 
+    purrr::reduce(c) %>% 
+    sort %>% 
+    paste(collapse = "") %>% 
+    digest::digest(.)
+
+  if(checkmate::test_true(v1 == v2)){
+    tests_assert$push(green("PASS: ") %+% test_name)
+  } else {
+    tests_assert$push(red("FAIL: ") %+% test_name)
+  }
+  tictoc::toc()
+  
+  
+  
+  # TEST: Use boolean and named subsetting of columns. Update. Compare to data base.
+  
+  
+  
   # Test: Use same dataframe to subset 10 rows. Delete. Compare to data base.
   # Test: Update each full column with new values = x4. Compare to data base.
   # Test: Update a whole row with new values = x4. Compare to data base.
