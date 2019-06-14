@@ -14,6 +14,43 @@ SmallTableObject <-
     classname = "SmallTableObject",
     
     #~~~~~~~~~~~~~~~~~~~~~~~~
+    # ~ Active ~
+    #~~~~~~~~~~~~~~~~~~~~~~~~
+    active = list(
+      host = function(value){
+        if(missing(value)){
+          return(private$host)
+        } else {
+          stop("Cannot assign to field: host")
+        }
+      },
+      dbtype = function(value){
+        if(missing(value)){
+          return(private$dbtype)
+        } else {
+          stop("Cannot assign to field: dbtype")
+        }
+      },
+
+      db = function(value){
+        if(missing(value)){
+          return(private$db)
+        } else {
+          stop("Cannot assign to field: db")
+        }
+      },
+      tablename = function(value){
+        if(missing(value)){
+          return(private$tablename)
+        } else {
+          stop("Cannot assign to field: tablename")
+        }
+      }
+    )
+    ,
+    
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~
     # ~ Public ~
     #~~~~~~~~~~~~~~~~~~~~~~~~
     public = list(
@@ -139,6 +176,7 @@ SmallTableObject <-
         cat(paste("db type    : ", private$dbtype, "\n"))
         cat(paste("table name : ", private$tablename, "\n"))
         cat(paste("nrow       : ", nrow(private$table_df), "\n"))
+        cat(paste("MD5        : ", private$table_hash, "\n"))
         
         invisible(self)
       },
@@ -246,7 +284,7 @@ SmallTableObject <-
       # ~ Finalize ~
       #~~~~~~~~~~~~~~~~~~~~~~~~
       finalize = function() {
-        print("Finalize object run.")
+        print("Finalize function at gc on object.")
         if (private$dbtype == "sqlite") {
           # Clean up the connection.
           try(suppressWarnings(RSQLite::dbDisconnect(private$connection)), silent = T)
