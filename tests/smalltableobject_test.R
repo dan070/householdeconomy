@@ -1,7 +1,7 @@
 # Instructions: 
 # Run this script top down to test all functions, objects and other code.
 # Errors will be printed out.
-
+ 
 source("./src/objects.R")
 library(checkmate)
 library(crayon)
@@ -145,6 +145,42 @@ get_sto <- function(n = 100, seed = 20202020){
     stop("Couldnt create new object.")
   })#end trycatch
 }  
+
+
+# /////////////////////////////////////////////////////////////////////
+# Func: Compare 2 data frames
+# /////////////////////////////////////////////////////////////////////
+compare_dfs <- function(...){
+  tryCatch({
+    args <- list(...)
+    if(length(args) < 2) stop("Not at least 2 dfs input to function compare_dfs.")
+    #args %>% str()
+
+    tst <- args %>% purrr::map(checkmate::test_data_frame) %>% 
+      purrr::reduce(all)
+    if(!tst) return(FALSE)
+    
+    cmb <- args %>% 
+      purrr::map(.f = function(x){
+        x %>% 
+          purrr::map(paste) %>% 
+          purrr::map(sort) %>% 
+          purrr::map(digest::digest) %>% 
+          purrr::reduce(c) %>% 
+          sort %>% 
+          paste(collapse = "") %>% 
+          digest::digest(.)
+      }) %>% 
+      purrr::reduce(c) %>% 
+      expand.grid(., .) %>% 
+      purrr::map(paste) 
+    
+    
+      return(purrr::map2(.x = cmb$Var1, .y = cmb$Var2, .f=function(x, y)x==y) %>% 
+        purrr::reduce(all))
+  }, error = function(e){return(FALSE)})
+}
+
 
 
 # ~~~~~~
@@ -490,21 +526,21 @@ for(db in tempdbpath){
   
   
   # TEST: Pin one unique row. Update 1 cell. Compare to data base.  
-  test_name <-
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
+  test_name <- 
     "Assign 1 cell ie sto[1 , 1] <- 1"
   tictoc::tic(test_name)
+  # Assign.
   tmprow <- sample(nrow(sto2[]), 1)
-  tmpdata <- sto2[tmprow, ]
-  sto2[tmprow, 1] <- (tmpdata[, 1] - 1)
+  tmp <- sto2[]
+  tmp[tmprow, 1] <- 0
+  sto2[tmprow, 1] <- 0
   # Get Database value.
-  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), 
-                                  where = list(b = tmpdata$b, c = tmpdata$c  ))
-  # Assert values were changed.
-  v1 <- paste(res$a)
-  v2 <- paste(sto2[tmprow, 1])
-  v3 <- paste((tmpdata[, 1] - 1))
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
+                                  where = list())
   
-  if(checkmate::test_true(v1 == v2 && v2 == v3)){
+  # Compare.
+  if(checkmate::test_true(compare_dfs(sto2[], res, tmp))){
     tests_assert$push(green("PASS: ") %+% test_name )
   } else {
     tests_assert$push(red("FAIL: ") %+% test_name )
@@ -513,47 +549,46 @@ for(db in tempdbpath){
   
 
   # TEST: Pin 10 unique rows. Update 1 cell. Compare to data base.  
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
   test_name <-
     "Assign 10 cells ie sto[1:10 , 1] <- 1"
   tictoc::tic(test_name)
+  # Assign.
   tmprow <- sample(nrow(sto2[]), 10)
-  tmpdata <- sto2[tmprow, ]
-  sto2[tmprow, 1] <- (tmpdata[, 1] - 1)
+  tmp <- sto2[]
+  tmp[tmprow, 1] <- 0
+  sto2[tmprow, 1] <- 0
   # Get Database value.
-  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), 
-                                  where = list(b = tmpdata$b, c = tmpdata$c  ))
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
+                                  where = list())
 
-  # Check results
-  v1 <- paste(res$a) %>% sort() %>% digest::digest()
-  v2 <- paste(sto2[tmprow, 1]) %>% sort() %>% digest::digest()
-  v3 <- paste((tmpdata[, 1] - 1)) %>% sort() %>% digest::digest()
-  if(checkmate::test_true(v1 == v2 && v2 == v3)){
-    tests_assert$push(green("PASS: ") %+% test_name)
+  # Compare.
+  if(checkmate::test_true(compare_dfs(sto2[], res, tmp))){
+    tests_assert$push(green("PASS: ") %+% test_name )
   } else {
-    tests_assert$push(red("FAIL: ") %+% test_name)
+    tests_assert$push(red("FAIL: ") %+% test_name )
   }
   tictoc::toc()
   
   
-  
   # TEST: Pin 10 unique rows. Update all cells to NA. Compare to data base.
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
   test_name <-
     "Assign 10 cells ie sto[1:10 , ] <- NA"
   tictoc::tic(test_name)
   tmprow <- sample(nrow(sto2[]), 10)
-  tmpdata <- sto2[tmprow, ]
-  sto2[tmprow, 1:3] <- NA
+  tmp <- sto2[]
+  tmp[tmprow, 1] <- NA
+  sto2[tmprow, 1] <- NA
   # Get Database value.
-  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), 
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
                                   where = list())
   
-  # Check results
-  v1 <- paste(res$a) %>% sort() %>% digest::digest()
-  v2 <- paste(sto2[, 1]) %>% sort() %>% digest::digest()
-  if(checkmate::test_true(v1 == v2)){
-    tests_assert$push(green("PASS: ") %+% test_name)
+  # Compare.
+  if(checkmate::test_true(compare_dfs(sto2[], res, tmp))){
+    tests_assert$push(green("PASS: ") %+% test_name )
   } else {
-    tests_assert$push(red("FAIL: ") %+% test_name)
+    tests_assert$push(red("FAIL: ") %+% test_name )
   }
   tictoc::toc()
   
@@ -564,10 +599,12 @@ for(db in tempdbpath){
     "Delete 10 rows ie sto[1:10 , ] "
   tictoc::tic(test_name)
   tmprow <- sample(nrow(sto2[]), 10)
-  tmpdata <- sto2[-tmprow, ]
-  sto2[,] <- tmpdata
+  tmp <- sto2[-tmprow, ]
+  sto2[, ] <- tmp
+  NBNBNB:  this does not really work for some reason!!"!!"
+  
   # Get Database value.
-  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = tf), 
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
                                   where = list())
   
   # Check results
@@ -599,17 +636,86 @@ for(db in tempdbpath){
   
   
   # TEST: Use boolean and named subsetting of columns. Update. Compare to data base.
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
+  test_name <-
+    "Assign using bool and named subsetting. sto[ bool , 'a']  <- 1"
+  tictoc::tic(test_name)
+  tmprow <- sto2[, 'a'] > median(sto2[, 1])
+  sto2[tmprow, 'a'] <- 0
+  # Get Database value.
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
+                                  where = list())
   
+  # Check results
+  v1 <- res %>% 
+    purrr::map(paste) %>% 
+    purrr::map(sort) %>% 
+    purrr::map(digest::digest) %>% 
+    purrr::reduce(c) %>% 
+    sort %>% 
+    paste(collapse = "") %>% 
+    digest::digest(.)
   
+  v2 <- sto2[] %>% 
+    purrr::map(paste) %>% 
+    purrr::map(sort) %>% 
+    purrr::map(digest::digest) %>% 
+    purrr::reduce(c) %>% 
+    sort %>% 
+    paste(collapse = "") %>% 
+    digest::digest(.)
   
-  # Test: Use same dataframe to subset 10 rows. Delete. Compare to data base.
-  # Test: Update each full column with new values = x4. Compare to data base.
-  # Test: Update a whole row with new values = x4. Compare to data base.
-  # Test: Try updating 1 cell in each column, with wrong type. Compare to data base.
-  # Test: Try replacing 1 column with wrong type. Compare to data base.
-  # Test: Try NULLing entire frame. Compare to data base.
-  # Test: Add 1 row to empty frame. What happens. Compare to data base.
-  # Test: Add 1 row to empty frame. Can I change data type? Compare to data base.
+  if(checkmate::test_true(v1 == v2)){
+    tests_assert$push(green("PASS: ") %+% test_name)
+  } else {
+    tests_assert$push(red("FAIL: ") %+% test_name)
+  }
+  tictoc::toc()
+   
+
+  # TEST: Update each full column with new values = x4. Compare to data base.
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
+  test_name <-
+    "Assign using bool and named subsetting. sto[ bool , 'a']  <- 1"
+  tictoc::tic(test_name)
+  tmprow <- sto2[, 'a'] > median(sto2[, 1])
+  sto2[tmprow, 'a'] <- 0
+  # Get Database value.
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
+                                  where = list())
+  
+  # Check results
+  v1 <- res %>% 
+    purrr::map(paste) %>% 
+    purrr::map(sort) %>% 
+    purrr::map(digest::digest) %>% 
+    purrr::reduce(c) %>% 
+    sort %>% 
+    paste(collapse = "") %>% 
+    digest::digest(.)
+  
+  v2 <- sto2[] %>% 
+    purrr::map(paste) %>% 
+    purrr::map(sort) %>% 
+    purrr::map(digest::digest) %>% 
+    purrr::reduce(c) %>% 
+    sort %>% 
+    paste(collapse = "") %>% 
+    digest::digest(.)
+  
+  if(checkmate::test_true(v1 == v2)){
+    tests_assert$push(green("PASS: ") %+% test_name)
+  } else {
+    tests_assert$push(red("FAIL: ") %+% test_name)
+  }
+  tictoc::toc()
+  
+  # TEST: Update a whole row with new values = x4. Compare to data base.
+  # TEST: Try updating 1 cell in each column, with wrong type. Compare to data base.
+  # TEST: Try replacing 1 column with wrong type. Compare to data base.
+  # TEST: Try NULLing entire frame. Compare to data base.
+  # TEST: Add 1 row to empty frame. What happens. Compare to data base.
+  # TEST: Add 1 row to empty frame. Can I change data type? Compare to data base.
   
     
   
