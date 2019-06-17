@@ -105,13 +105,16 @@ SmallTableObject <-
                               missingy,
                               missingvalue) {
         #return(self)
+        
+        require(RSQLite)
+        require(DBI)
+        
         # Check that value has been input.
-        print(paste("value=", value))
-
-        print(paste("Nargs", Nargs))
-        print(paste("missingx", missingx))
-        print(paste("missingy", missingy))
-        print(paste("missingvalue", missingvalue))
+        # print(paste("value=", value))
+        # print(paste("Nargs", Nargs))
+        # print(paste("missingx", missingx))
+        # print(paste("missingy", missingy))
+        # print(paste("missingvalue", missingvalue))
         
         
         if (missingvalue)
@@ -123,7 +126,7 @@ SmallTableObject <-
         
         # Assign and let R's errors fire, if any.
         if (Nargs == 1 && missingx && missingy) {
-          tmp_table_df[] <- value
+          tmp_table_df <- value
           print("sto2[] <- 1 #nargs:1 missing:TT")
         }
         if (Nargs == 1 && !missingx && missingy) {
@@ -131,6 +134,11 @@ SmallTableObject <-
           print("#sto2[1] <- c(1,1) #nargs:1 missing:FT")
         }
         
+        if (Nargs == 2 && missingx && missingy) {
+          tmp_table_df <- value
+          print("#sto2[, ] <- val #nargs:2 missing:TT")
+        }
+
         if (Nargs == 2 && !missingx && missingy) {
           tmp_table_df[x,] <- value
           print("#sto2[1, ] <- 1 #nargs:2 missing:FT")
@@ -144,7 +152,6 @@ SmallTableObject <-
           print("#sto2[1, 1] <- 1 #nargs:2 missing:FF")
         }
         
-        print("here")
         # Assert: classes on temp data frame have not changed.
         tmp_class_value = sapply(X = tmp_table_df,
                                  FUN = class)
@@ -157,7 +164,6 @@ SmallTableObject <-
                                     y = tmp_class_value,
                                     ordered = T)
         
-        print("Assert done.")
         # Save local copy to data base.
         # Errors will be propagated through here.
         private$save_table_to_database(tmp_table_df)
@@ -344,21 +350,24 @@ SmallTableObject <-
       # Write local data frame to data base table.
       #~~~~~~~~~~~~~~~~~~~~~~~~
       save_table_to_database = function(df_to_save) {
+        require(RSQLite)
+        require(DBI)
         if (private$dbtype == "sqlite") {
           print("save_table_to_database...")
           # Check data base connection working
-          if (!DBI::dbIsValid(private$connection)) {
+          if (!dbIsValid(private$connection)) {
             private$connection <-
-              RSQLite::dbConnect(drv = RSQLite::SQLite(), dbname = private$host)
+              dbConnect(drv = RSQLite::SQLite(), dbname = private$host)
+            print("new private$connection made")
           }
-          checkmate::assert_true(DBI::dbIsValid(private$connection), .var.name = "DB connection.")
+          checkmate::assert_true(DBI::dbIsValid(private$connection))
           print("Check db connection.")
           
           
           # Ensure no data race on local table versus target table
           # ie. download table, compare hashes, else error.
           tmp_data_table <-
-            DBI::dbReadTable(conn = private$connection, name = private$tablename) # Get DB-table.
+            dbReadTable(conn = private$connection, name = private$tablename) # Get DB-table.
           tmp_hash <-
             private$hash_data_frame(df_to_hash = tmp_data_table) # Hash DB-table.
           print(private$table_hash)
@@ -368,15 +377,16 @@ SmallTableObject <-
           
           # ~~ Upsert the table ~~
           # Truncate the data base table.
-          DBI::dbSendQuery(
+          tmp <- dbSendQuery(
             conn = private$connection,
             statement = paste("DELETE FROM ", private$tablename)
           )
+          dbClearResult(tmp)
           print("Delete done.")
           
           #print(df_to_save)
           # Upsert whole private table to data base table.
-          DBI::dbWriteTable(
+          tmp <- dbWriteTable(
             conn = private$connection,
             name = private$tablename,
             value = df_to_save, 
@@ -394,8 +404,8 @@ SmallTableObject <-
             private$hash_data_frame(private$table_df)
           print("Updated hash ")
           
-          # Release connection 
-          DBI::dbDisconnect(private$connection)
+          # Release connection
+          dbDisconnect(private$connection)
         } # if private$dbtype == "sqlite" ends here.
       }# func:save_table_to_database ends here.
     )# Private fields ends here
