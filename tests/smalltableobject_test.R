@@ -600,39 +600,19 @@ for(db in tempdbpath){
   tictoc::tic(test_name)
   tmprow <- sample(nrow(sto2[]), 10)
   tmp <- sto2[-tmprow, ]
-  sto2[, ] <- tmp
-  NBNBNB:  this does not really work for some reason!!"!!"
-  
+  sto2[,] <- tmp
+
   # Get Database value.
   res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
                                   where = list())
   
-  # Check results
-  v1 <- res %>% 
-    purrr::map(paste) %>% 
-    purrr::map(sort) %>% 
-    purrr::map(digest::digest) %>% 
-    purrr::reduce(c) %>% 
-    sort %>% 
-    paste(collapse = "") %>% 
-    digest::digest(.)
-    
-  v2 <- sto2[] %>% 
-    purrr::map(paste) %>% 
-    purrr::map(sort) %>% 
-    purrr::map(digest::digest) %>% 
-    purrr::reduce(c) %>% 
-    sort %>% 
-    paste(collapse = "") %>% 
-    digest::digest(.)
-
-  if(checkmate::test_true(v1 == v2)){
-    tests_assert$push(green("PASS: ") %+% test_name)
+  # Compare.
+  if(checkmate::test_true(compare_dfs(sto2[], res, tmp))){
+    tests_assert$push(green("PASS: ") %+% test_name )
   } else {
-    tests_assert$push(red("FAIL: ") %+% test_name)
+    tests_assert$push(red("FAIL: ") %+% test_name )
   }
   tictoc::toc()
-  
   
   
   # TEST: Use boolean and named subsetting of columns. Update. Compare to data base.
@@ -646,92 +626,225 @@ for(db in tempdbpath){
   res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
                                   where = list())
   
-  # Check results
-  v1 <- res %>% 
-    purrr::map(paste) %>% 
-    purrr::map(sort) %>% 
-    purrr::map(digest::digest) %>% 
-    purrr::reduce(c) %>% 
-    sort %>% 
-    paste(collapse = "") %>% 
-    digest::digest(.)
-  
-  v2 <- sto2[] %>% 
-    purrr::map(paste) %>% 
-    purrr::map(sort) %>% 
-    purrr::map(digest::digest) %>% 
-    purrr::reduce(c) %>% 
-    sort %>% 
-    paste(collapse = "") %>% 
-    digest::digest(.)
-  
-  if(checkmate::test_true(v1 == v2)){
-    tests_assert$push(green("PASS: ") %+% test_name)
+  # Compare.
+  if(checkmate::test_true(compare_dfs(sto2[], res))){
+    tests_assert$push(green("PASS: ") %+% test_name )
   } else {
-    tests_assert$push(red("FAIL: ") %+% test_name)
+    tests_assert$push(red("FAIL: ") %+% test_name )
   }
   tictoc::toc()
-   
+  
 
   # TEST: Update each full column with new values = x4. Compare to data base.
   sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
   test_name <-
-    "Assign using bool and named subsetting. sto[ bool , 'a']  <- 1"
+    "Assign column 'a' sto[, 'a']  <- val"
   tictoc::tic(test_name)
-  tmprow <- sto2[, 'a'] > median(sto2[, 1])
-  sto2[tmprow, 'a'] <- 0
+  tmp <- sto2[]
+  tmp2 <- sample(sto2[1:5, 'a'], nrow(sto2[,]), replace = T)
+  tmp[, 'a'] <- tmp2
+  sto2[, 'a'] <- tmp2
   # Get Database value.
   res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
                                   where = list())
   
-  # Check results
-  v1 <- res %>% 
-    purrr::map(paste) %>% 
-    purrr::map(sort) %>% 
-    purrr::map(digest::digest) %>% 
-    purrr::reduce(c) %>% 
-    sort %>% 
-    paste(collapse = "") %>% 
-    digest::digest(.)
-  
-  v2 <- sto2[] %>% 
-    purrr::map(paste) %>% 
-    purrr::map(sort) %>% 
-    purrr::map(digest::digest) %>% 
-    purrr::reduce(c) %>% 
-    sort %>% 
-    paste(collapse = "") %>% 
-    digest::digest(.)
-  
-  if(checkmate::test_true(v1 == v2)){
-    tests_assert$push(green("PASS: ") %+% test_name)
+  # Compare.
+  if(checkmate::test_true(compare_dfs(sto2[], res, tmp))){
+    tests_assert$push(green("PASS: ") %+% test_name )
   } else {
-    tests_assert$push(red("FAIL: ") %+% test_name)
+    tests_assert$push(red("FAIL: ") %+% test_name )
   }
   tictoc::toc()
   
+    
   # TEST: Update a whole row with new values = x4. Compare to data base.
-  # TEST: Try updating 1 cell in each column, with wrong type. Compare to data base.
-  # TEST: Try replacing 1 column with wrong type. Compare to data base.
-  # TEST: Try NULLing entire frame. Compare to data base.
-  # TEST: Add 1 row to empty frame. What happens. Compare to data base.
-  # TEST: Add 1 row to empty frame. Can I change data type? Compare to data base.
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
+  test_name <-
+    "Assign row with new values,  sto[1, ]  <- c(1, 2, 3, 4)"
+  tictoc::tic(test_name)
+  tmp <- sto2[]
+  tmp2 <- sample.int(nrow(sto2[]), 2)
+  tmp[tmp2[1], ] <- tmp[tmp2[2], ] # Need to see how a local copy would behave.
+  sto2[tmp2[1], ] <- sto2[tmp2[2], ] # This shows how the sto object behaves.
   
+
+  # Get Database value.
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
+                                  where = list())
+  
+  # Compare.
+  if(checkmate::test_true(compare_dfs(sto2[], res, tmp))){
+    tests_assert$push(green("PASS: ") %+% test_name )
+  } else {
+    tests_assert$push(red("FAIL: ") %+% test_name )
+  }
+  tictoc::toc()
+  
+  
+  
+  # TEST: Try updating 1 cell in each column, with wrong type. Compare to data base.
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
+  test_name <-
+    "Assign 1 cell with wrong type,  sto[1, 1]  <- wrong-type-var "
+  tictoc::tic(test_name)
+  
+  tmp[1, 1] <- "hello"
+  sto2[1, 1] <- "hello" # should be NA when S3 class.
+  # Get Database value.
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
+                                  where = list())
+  
+  # Compare.
+  if(checkmate::test_true(compare_dfs(sto2[], res, tmp))){
+    tests_assert$push(green("PASS: ") %+% test_name )
+  } else {
+    tests_assert$push(red("FAIL: ") %+% test_name )
+  }
+  tictoc::toc()
+  
+
+  
+  # TEST: Try updating 1 cell in each column, with wrong type. Compare to data base.
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
+  test_name <-
+    "Assign 1 cell with wrong type,  sto[1, 1]  <- wrong-type-var "
+  tictoc::tic(test_name)
+  
+  tmp[1, 2] <- "hello"
+  
+  tryCatch({
+    sto2[1, 2] <- "hello" # should throw error, atomic value.
+    tests_assert$push(red("FAIL: no error generated") %+% test_name )
+  }, error = function(e){
+    tests_assert$push(green("PASS: error generated ") %+% test_name )
+  }
+  )
+
+  # Get Database value.
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
+                                  where = list())
+  
+  # Compare.
+  if(checkmate::test_true(compare_dfs(sto2[], res))){
+    tests_assert$push(green("PASS: data base intact") %+% test_name )
+  } else {
+    tests_assert$push(red("FAIL: change to local data made") %+% test_name )
+  }
+  tictoc::toc()
+  
+  
+  
+  # TEST: Try replacing 1 column with wrong type. Compare to data base.
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
+  test_name <-
+    "Assign 1 column with wrong type,  sto[, 1]  <- wrong-type-var "
+  tictoc::tic(test_name)
+
+  tmp <- sto2[]
+  tmp[, 1] <- rep("hello", nrow(sto2[]))  
+  
+
+  tryCatch({
+    sto2[, 1] <- rep("hello", nrow(sto2[]))  
+    tests_assert$push(red("FAIL: no error generated") %+% test_name )
+  }, error = function(e){
+    tests_assert$push(green("PASS: error generated ") %+% test_name )
+  }
+  )
+  tictoc::toc()
+  
+  
+  # TEST: Try NULLing entire frame. Compare to data base.
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
+  test_name <-
+    "Assign NULL to entire frame,  sto[, ]  <- NULL "
+  tictoc::tic(test_name)
+  
+  tryCatch({
+    sto2[, 1] <- NULL
+    tests_assert$push(red("FAIL: sto2[, 1] <- NULL") %+% test_name )
+  }, error = function(e){
+    tests_assert$push(green("PASS: sto2[, 1] <- NULL") %+% test_name )
+  })
+  
+  tryCatch({
+    sto2[1, ] <- NULL
+    tests_assert$push(red("FAIL: sto2[1, ] <- NULL") %+% test_name )
+  }, error = function(e){
+    tests_assert$push(green("PASS: sto2[1, ] <- NULL") %+% test_name )
+  })
+  
+  tryCatch({
+    sto2[, ] <- NULL
+    tests_assert$push(red("FAIL: sto2[, ] <- NULL") %+% test_name )
+  }, error = function(e){
+    tests_assert$push(green("PASS: sto2[, ] <- NULL") %+% test_name )
+  })
+
+  tryCatch({
+    sto2[1,1] <- NULL
+    tests_assert$push(red("FAIL: sto2[1, 1] <- NULL") %+% test_name )
+  }, error = function(e){
+    tests_assert$push(green("PASS: sto2[1, 1] <- NULL") %+% test_name )
+  })
+  
+  tictoc::toc()
+  
+  
+
+    
     
   
   
   
   
-  # Clear the local copy of table and randomise a new, 100 rows for each column.
-  # Use set method to write back a new table.
-  # Remove 1 row, and write back.
-  # Add 1 row, and write back.
-  # 
-  # Delete one or more rows from the db table.
-  # Change 1 value on local table.
-  # Write back should now fail.
-  # 
-  # Unlink the old sto, and create a new sto.
+  # TEST: clear the local copy of table and randomise a new, 100 rows for each column.
+  sto2 <- get_sto(n = 100, seed = sample.int(10000000, 1))
+  test_name <-
+    "Assign 300 new rows,  sto[, ]  <- completelynewdata "
+  tictoc::tic(test_name)
+  
+  tmp <- sample_n(sto2[], 300, replace = T)
+  sto2[] <- tmp
+  
+  # Get Database value.
+  res <- get_values_from_database(con = DBI::dbConnect(drv = RSQLite::SQLite(), dbname = sto2$get_host), 
+                                  where = list())
+  
+  # Compare.
+  if(checkmate::test_true(compare_dfs(sto2[], res, tmp))){
+    tests_assert$push(green("PASS: data base intact") %+% test_name )
+  } else {
+    tests_assert$push(red("FAIL: change to local data made") %+% test_name )
+  }
+  tictoc::toc()
+  
+  
+  
+  # TEST: change the underlying data base to simulate data race error.
+  sto2 <- get_sto(n = 10, seed = sample.int(10000000, 1))
+  test_name <-
+    "Change underlying table in database,  sto[, ]  != sqltable "
+  tictoc::tic(test_name)
+  
+  # Update underlying table.
+  tmp_c <- dbConnect(RSQLite::SQLite(), sto2$get_host)
+  tmp <- dbSendQuery(tmp_c, glue("UPDATE {sto2$get_tablename} SET a = 1 WHERE a < 0"))
+  dbClearResult(tmp)
+  dbDisconnect(tmp_c)
+
+  # Should generate an error.
+  tryCatch({
+    sto2[1,1] <- 0
+    tests_assert$push(red("FAIL: ") %+% test_name )
+  }, error = function(e){
+    tests_assert$push(green("PASS: ") %+% test_name )
+  })
+  
+
+  
+  
+    # Unlink the old sto, and create a new sto.
   # Change 1 value on the db table.
   # Write back should now fail.
   # Unlink the sto.
