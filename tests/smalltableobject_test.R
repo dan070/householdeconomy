@@ -842,12 +842,6 @@ for(db in tempdbpath){
   })
   
 
-  
-  
-    # Unlink the old sto, and create a new sto.
-  # Change 1 value on the db table.
-  # Write back should now fail.
-  # Unlink the sto.
   #
   # Create an empty table on the db.
   # Create a sto on that empty table.
